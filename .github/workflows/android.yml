@@ -27,9 +27,10 @@ jobs:
       - name: Initialize Node project
         run: npm init -y
 
-      - name: Install Capacitor
+      - name: Install Capacitor and Assets
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install --save-dev @capacitor/assets
 
       - name: Initialize Capacitor
         run: |
@@ -37,6 +38,10 @@ jobs:
 
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Generate Zim Drive Android Icon
+        run: |
+          npx @capacitor/assets generate --android --assetPath assets
 
       - name: Sync web application
         run: npx cap sync android
