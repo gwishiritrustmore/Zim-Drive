@@ -94,6 +94,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--granit
 #stopBar{height:6px;background:#0a1226;border-radius:3px;margin-top:4px;overflow:hidden;display:flex}
 #stopReact{background:var(--blue)}#stopBrake{background:var(--red)}
 
+#debug{position:absolute;right:8px;bottom:8px;z-index:9;display:none;max-width:300px;
+  font-family:var(--mono);font-size:8.5px;line-height:1.5;color:#9df3c8;
+  background:#04070de6;border:1px solid #17A96A;border-radius:8px;padding:6px 8px;pointer-events:none}
+#debug.show{display:block}
+#debug b{color:#F5B324}
 /* ---------- live rules panel ---------- */
 #rules{position:absolute;left:8px;top:64px;width:196px;z-index:8;font-family:var(--mono);font-size:9.5px;
   background:linear-gradient(180deg,#0b1428f2,#0a1020f2);border:1px solid #2b3a63;border-left:3px solid var(--green);
@@ -229,7 +234,7 @@ canvas.dg{width:100%;max-width:340px;display:block;margin:0 auto 8px;background:
     <div id="topbar">
       <div id="limitSign">60</div>
       <div class="tile" id="zoneTile"><span class="lbl">LOCATION</span><b id="hZone">HARARE CBD</b><span id="hRoad">Urban road</span></div>
-      <div class="tile" id="buildTile" style="border-color:#F5B324"><span class="lbl">BUILD</span><b>3.0</b><span>3D engine</span></div>
+      <div class="tile" id="buildTile" style="border-color:#F5B324"><span class="lbl">BUILD</span><b>4.0.0</b><span>simulator pass</span></div>
       <div class="tile" id="scoreTile"><span class="lbl">SAFETY / LICENCE</span><b id="hScore">100%</b><span id="hPoints">12 pts</span></div>
       <div id="spacer"></div>
     </div>
@@ -266,6 +271,7 @@ canvas.dg{width:100%;max-width:340px;display:block;margin:0 auto 8px;background:
       <div id="robotTxt">—</div>
     </div>
     <div id="bigsign"></div>
+    <div id="debug"></div>
     <div id="alerts"></div>
 
     <div id="pads">
@@ -322,6 +328,7 @@ canvas.dg{width:100%;max-width:340px;display:block;margin:0 auto 8px;background:
     <div class="mini" id="btnMode">COMFORT</div>
     <div class="mini" id="btnCam">CAM</div>
     <div class="mini on" id="btnRules">RULES</div>
+    <div class="mini" id="btnDebug">🔧 F9</div>
     <div class="mini" id="btnBelt">BELT</div>
     <div class="mini" id="btnTrans">AUTO</div>
     <div class="mini" id="btnHand">🅿️ HANDBRAKE</div>
@@ -358,7 +365,7 @@ canvas.dg{width:100%;max-width:340px;display:block;margin:0 auto 8px;background:
   <div class="hero">
     <div class="t1">ZIM DRIVE</div>
     <div class="t2">ROADS OF ZIMBABWE · DRIVING &amp; ROAD-SAFETY SIMULATOR</div>
-    <div class="t2" id="buildTag" style="color:#F5B324;letter-spacing:2px;margin-top:4px">BUILD 3.0</div>
+    <div class="t2" id="buildTag" style="color:#F5B324;letter-spacing:2px;margin-top:4px">BUILD 4.0.0</div>
   </div>
   <div class="chev" style="margin:6px 0 12px"></div>
   <div class="wrap">
@@ -397,6 +404,7 @@ canvas.dg{width:100%;max-width:340px;display:block;margin:0 auto 8px;background:
   <div class="wrap" id="gBody"></div>
 </div>
 <script>
+
 /* =====================================================================
    ZIM DRIVE — DATA LAYER
    Sources: Zimbabwe Highway Code (updated), SeCautions Driving School
@@ -836,31 +844,31 @@ const LESSONS = [
 
 /* ------------------------------------------------------------- VEHICLES */
 const VEHICLES = [
- {id:'hatch', name:'MBIZI HATCH 1.4', body:'hatch', cls:'Class 4 · light motor vehicle',
+ {id:'hatch', wheelBase:2.45, name:'MBIZI HATCH 1.4', body:'hatch', cls:'Class 4 · light motor vehicle',
   power:'petrol', trans:'manual', ratios:[3.55,2.05,1.38,1.03,0.82], tank:42, cons:7.2,
   hp:95, nm:135, gears:5, top:165, zero:12.4, mass:1050, price:0, colour:'#F4F7FF',
   desc:'The driving-school car: a white hatchback with a body kit and red LED rear reflectors. Five-speed manual, light clutch, forgiving.'},
- {id:'family', name:'MUKWA 1.6 SE', body:'sedan', cls:'Class 4 · light motor vehicle',
+ {id:'family', wheelBase:2.6, name:'MUKWA 1.6 SE', body:'sedan', cls:'Class 4 · light motor vehicle',
   power:'petrol', trans:'manual', ratios:[3.42,1.95,1.32,0.98,0.79,0.68], tank:50, cons:7.8,
   hp:124, nm:165, gears:6, top:185, zero:10.6, mass:1290, price:2600, colour:'#5A6B8C',
   desc:'The everyday family sedan. Six-speed manual, roomy boot, happy on a long A3 run.'},
- {id:'sedan', name:'SABLE EXECUTIVE 2.0T', body:'sedan', cls:'Class 4 · light motor vehicle',
+ {id:'sedan', wheelBase:2.85, name:'SABLE EXECUTIVE 2.0T', body:'sedan', cls:'Class 4 · light motor vehicle',
   power:'petrol', trans:'auto', tank:62, cons:9.4,
   hp:245, nm:400, gears:8, top:235, zero:6.1, mass:1520, price:6500, colour:'#1B2A55',
   desc:'The hero car. Eight-speed automatic, 12,3-inch cluster, ambient cabin lighting and traffic-sign recognition.'},
- {id:'hybrid', name:'SABLE e-HEV', body:'sedan', cls:'Class 4 · light motor vehicle',
+ {id:'hybrid', wheelBase:2.85, name:'SABLE e-HEV', body:'sedan', cls:'Class 4 · light motor vehicle',
   power:'hybrid', trans:'auto', tank:48, cons:4.6,
   hp:218, nm:340, gears:8, top:210, zero:7.4, mass:1610, price:9800, colour:'#0E7C6B',
   desc:'Petrol engine, electric motor and a traction battery. Pulls away in EV, recovers energy on the brakes, sips fuel in town.'},
- {id:'suv', name:'NYATHI 2.8 GD', body:'suv', cls:'Class 4 · light motor vehicle',
+ {id:'suv', wheelBase:2.75, name:'NYATHI 2.8 GD', body:'suv', cls:'Class 4 · light motor vehicle',
   power:'diesel', trans:'manual', ratios:[4.17,2.34,1.52,1.0,0.79,0.64], tank:80, cons:9.9,
   hp:201, nm:500, gears:6, top:180, zero:10.2, mass:2130, price:8200, colour:'#FAFBFF',
   desc:'White body-on-frame diesel with a tow bar. Ground clearance for gravel, growth points and flooded drifts.'},
- {id:'kombi', name:'CHIKWATA KOMBI 15', body:'kombi', cls:'Class 1 · public service vehicle',
+ {id:'kombi', wheelBase:3.0, name:'CHIKWATA KOMBI 15', body:'kombi', cls:'Class 1 · public service vehicle',
   power:'diesel', trans:'manual', ratios:[4.42,2.43,1.48,1.0,0.79], tank:70, cons:11.4,
   hp:150, nm:360, gears:5, top:150, zero:14.0, mass:2450, price:11500, colour:'#EFF3FA',
   desc:'Commuter omnibus. Class 1 work: 25 years and over, defensive certificate, medical, retest every five years. Held to 80 km/h.'},
- {id:'sports', name:'SIMBA GT 3.0', body:'sedan', cls:'Class 4 · light motor vehicle',
+ {id:'sports', wheelBase:2.9, name:'SIMBA GT 3.0', body:'sedan', cls:'Class 4 · light motor vehicle',
   power:'petrol', trans:'auto', tank:66, cons:12.6,
   hp:410, nm:550, gears:8, top:270, zero:4.4, mass:1620, price:19000, colour:'#E3342F',
   desc:'Sport+ and the closed circuit. Magnificent on a track, an expensive way to collect licence points on a public road.'}
@@ -869,25 +877,29 @@ const VEHICLES = [
 /* ------------------------------------------------------- ROUTES / PLACES
    plan stages: zone, segs (each segment ≈ 6,7 m)                      */
 const ROUTES = {
- harare_cbd:{name:'HARARE CBD LOOP', from:'Harare CBD', to:'Harare CBD', road:'Urban streets',
+ harare_cbd:{profiles:{cbd:'HARARE_CBD', suburb:'HARARE_SUBURB'}, name:'HARARE CBD LOOP', from:'Harare CBD', to:'Harare CBD', road:'Urban streets',
    hour:8, wx:'sunny', plan:[['cbd',110],['suburb',150],['cbd',120],['suburb',130],['cbd',90]]},
- avondale:{name:'AVONDALE SCHOOL RUN', from:'Harare CBD', to:'Avondale', road:'Suburban roads',
+ harare_ave:{name:'JACARANDA AVENUE', from:'Harare CBD', to:'Borrowdale', road:'Tree-lined avenue',
+   hour:9.5, wx:'sunny', profiles:{avenue:'HARARE_AVENUE', cbd:'HARARE_CBD', suburb:'HARARE_SUBURB'},
+   plan:[['cbd',90],['avenue',360],['suburb',140],['avenue',220]]},
+ avondale:{profiles:{cbd:'HARARE_CBD', suburb:'HARARE_SUBURB', school:'HARARE_SUBURB'}, name:'AVONDALE SCHOOL RUN', from:'Harare CBD', to:'Avondale', road:'Suburban roads',
    hour:7.2, wx:'sunny', plan:[['cbd',80],['suburb',220],['school',90],['suburb',160]]},
- norton_night:{name:'HARARE → NORTON', from:'Harare', to:'Norton', road:'A5 west',
+ norton_night:{profiles:{cbd:'HARARE_CBD', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD', town:'GWERU'}, name:'HARARE → NORTON', from:'Harare', to:'Norton', road:'A5 west',
    hour:19.5, wx:'night', plan:[['cbd',70],['suburb',130],['peri',110],['highway',330],['town',110]]},
- mutare_a3:{name:'HARARE → MUTARE', from:'Harare', to:'Mutare', road:'A3 east · 263 km (scaled)',
+ mutare_a3:{profiles:{suburb:'HARARE_SUBURB', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD', rural:'RURAL_HIGHVELD', mountain:'EASTERN_HIGHLANDS', town:'MUTARE'}, name:'HARARE → MUTARE', from:'Harare', to:'Mutare', road:'A3 east · 263 km (scaled)',
    hour:9.5, wx:'sunny', plan:[['suburb',110],['peri',110],['highway',280],['rural',200],['mountain',320],['town',120]]},
- chivhu_rural:{name:'CATTLE COUNTRY', from:'Chivhu', to:'Masvingo road', road:'A4 south · rural',
-   hour:16.8, wx:'sunny', plan:[['town',90],['rural',420],['gravel',180],['rural',260]]},
- bulawayo_grid:{name:'BULAWAYO GRID', from:'Bulawayo CBD', to:'Bulawayo CBD', road:'Wide urban grid',
+ chivhu_rural:{profiles:{town:'GWERU', rural:'RURAL_HIGHVELD', gravel:'RURAL_HIGHVELD'}, name:'CATTLE COUNTRY', from:'Chivhu', to:'Masvingo road', road:'A4 Harare–Masvingo · rural',
+   hour:16.8, wx:'sunny', noRail:true,
+   plan:[['town',90],['rural',420],['gravel',180],['rural',260]]},
+ bulawayo_grid:{profiles:{cbd:'BULAWAYO', suburb:'BULAWAYO'}, name:'BULAWAYO GRID', from:'Bulawayo CBD', to:'Bulawayo CBD', road:'Wide urban grid',
    hour:11, wx:'sunny', plan:[['cbd',140],['suburb',180],['cbd',140],['suburb',150]]},
- gweru_rain:{name:'GWERU → KWEKWE', from:'Gweru', to:'Kwekwe', road:'A5 · wet',
+ gweru_rain:{profiles:{town:'GWERU', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD'}, name:'GWERU → KWEKWE', from:'Gweru', to:'Kwekwe', road:'A5 · wet',
    hour:14, wx:'rain', plan:[['town',90],['peri',110],['highway',380],['town',110]]},
- vicfalls:{name:'HWANGE → VICTORIA FALLS', from:'Hwange', to:'Victoria Falls', road:'A8 north-west',
+ vicfalls:{profiles:{town:'VICTORIA_FALLS', highway:'HWANGE', rural:'HWANGE'}, name:'HWANGE → VICTORIA FALLS', from:'Hwange', to:'Victoria Falls', road:'A8 north-west',
    hour:15.5, wx:'sunny', plan:[['town',80],['highway',420],['rural',260],['town',140]]},
  emergency:{name:'EMERGENCY CHALLENGE', from:'Harare', to:'Parirenyatwa', road:'Urban arterials',
    hour:13, wx:'sunny', plan:[['cbd',120],['suburb',200],['cbd',160]], emergency:true},
- mutare_hills:{name:'MUTARE HIGHLANDS', from:'Mutare', to:'Vumba road', road:'Mountain road',
+ mutare_hills:{profiles:{town:'MUTARE', mountain:'EASTERN_HIGHLANDS', rural:'EASTERN_HIGHLANDS'}, name:'MUTARE HIGHLANDS', from:'Mutare', to:'Vumba road', road:'Mountain road',
    hour:10, wx:'mist', plan:[['town',80],['mountain',420],['rural',200]]},
  circuit:{name:'CLOSED CIRCUIT', from:'Motorsport park', to:'Finish line', road:'Closed track — racing rules',
    hour:12, wx:'sunny', track:true, plan:[['track',900]]}
@@ -922,12 +934,35 @@ const MISSIONS = [
    ===================================================================== */
 
 /* ------------------------------------------------------------ constants */
+/* =====================================================================
+   THE WORLD-COORDINATE CONTRACT  —  every subsystem derives from this
+   ---------------------------------------------------------------------
+   Road forward at heading h : F = ( sin h , cos h )
+   True right of travel      : R = F x up = ( -cos h , sin h )
+   Lane offset sign          : NEGATIVE = left of travel, POSITIVE = right
+   Zimbabwe drives on the LEFT, so the player lane is negative.
+   Verified against the camera basis: with the camera behind the car looking
+   along +F, R maps to screen right.
+   ===================================================================== */
+const TRAFFIC_SIDE   = 'LEFT';
+const PLAYER_LANE    = -0.52;      // left-hand carriageway, centre of our lane
+const PLAYER_INNER   = -0.16;      // our inner (overtaking) lane
+const ONCOMING_LANE  =  0.52;      // opposing carriageway
+const ONCOMING_INNER =  0.16;
+const VERGE_LEFT     = -1.45;      // where signs for our direction stand
+const VERGE_RIGHT    =  1.45;
+function roadRight(h){ return {x:-Math.cos(h), z:Math.sin(h)}; }
+function roadFwd(h){ return {x:Math.sin(h), z:Math.cos(h)}; }
+
 const SEG = 200;                 // world units per road segment
+const HW_M = 3.6;                // metres per lane unit (matches HW in the 3D layer)
+const MAX_STEER = 0.60;          // radians of steering-wheel lock at the road wheels
 const WPM = 30;                  // world units per metre  (1 segment ≈ 6,67 m)
 const ROAD_W = 2000;             // half road width, world units
 const CAM_H = 1000;
 const DRAW = 220;                // segments drawn
-const LANES = {ours:-0.52, oursInner:-0.16, onc:0.52, oncInner:0.16};
+const LANES = {ours:PLAYER_LANE, oursInner:PLAYER_INNER, onc:ONCOMING_LANE, oncInner:ONCOMING_INNER};
+const LANE_OF = {};
 const KMH = 3.6;
 const CAR_LEN = 5;               // metres, used for the "one car per 15 km/h" gap
 const GEARS8 = [4.71,3.14,2.11,1.67,1.29,1.00,0.84,0.67];
@@ -940,6 +975,10 @@ const MODES = [
   {n:'SPORT+',   up:6250, down:2700, thr:1.00, shift:0.12}
 ];
 const ZONE = {
+  // The tree-lined Harare avenue: dual carriageway, grass median, closed
+  // jacaranda canopy. Its own zone because its cross-section differs.
+  avenue:  {limit:60, grass:'#2c7f42', grass2:'#27743b', road:'#4a4f5e', road2:'#454a59',
+            rumble:'#e6e9f0', rumble2:'#c2c6d2', dens:1.2, onc:1.1, build:'house'},
   cbd:     {limit:60, grass:'#3b4152', grass2:'#343a4a', road:'#4a4f5e', road2:'#454a59',
             rumble:'#d8dbe4', rumble2:'#b9bdc9', dens:1.5, onc:1.3, build:'tower'},
   suburb:  {limit:60, grass:'#2f8f4a', grass2:'#2a8143', road:'#4c5160', road2:'#474c5b',
@@ -1062,6 +1101,8 @@ const G = {
   abs:false, tc:false, offroad:0, shake:0,
   clock:8*3600, wx:'sunny', fuel:42, distM:0, t:0,
   clutch:0, eng:0, mForce:0, clutchWear:0, handbrake:false, mGear:0, stalled:false, batt:70, evMode:false, regen:0,
+  heading:0, roadH:0, yawErr:0, yawRate:0, pitch:0, roll:0, accelMs:0, understeer:0,
+  damage:0, shake:0, collisions:0,
   stations:[], tollsPaid:0, tollCount:0, fines:0, fuelCost:0, litresUsed:0, avgL100:0, refuels:0,
   cars:[], hazards:[], junctions:[], emerg:null, train:null,
   safety:100, points:Save.d.points, score:0, viol:[], bonuses:0,
@@ -1097,11 +1138,214 @@ function addRoad(enter, hold, leave, curve, hillTo, zone){
   for(let i=0;i<leave;i++) addSeg(easeInOut(curve,0,i/leave), easeInOut(start,end,(enter+hold+i)/total), zone);
 }
 
+/* ---------------------------------------------------------------------
+   ROADSIDE SETBACK
+   Nothing solid may stand within the carriageway, its shoulder, the verge or
+   the footway. Every placeable kind declares its own footprint, and sp() pushes
+   the object outward until its own half-width clears the reserve.
+
+       |<-- carriageway -->|shoulder|verge|footway| setback | BUILDING
+       0                 1.08     1.35   1.62    1.85      >=
+   Offsets are in lane units; one lane unit is HW_M metres.
+   --------------------------------------------------------------------- */
+const ROAD_EDGE      = 1.08;      // lane units to the edge of the tar
+const SHOULDER_W     = 0.27;
+const VERGE_W        = 0.27;
+const FOOTWAY_W      = 0.23;
+const MIN_SETBACK    = 0.18;
+const RESERVE_EDGE   = ROAD_EDGE + SHOULDER_W + VERGE_W + FOOTWAY_W + MIN_SETBACK;
+/* half-width of each object in METRES, used to compute its footprint */
+const FOOTPRINT = {
+  tower:  sp=> (7 + (sp.h||3))*0.5 + 1.0,
+  house:  ()=> 3.5 + 0.6,
+  shop:   ()=> 4.0 + 0.6,
+  shack:  ()=> 2.0 + 0.4,
+  hut:    ()=> 2.6 + 0.4,
+  kopje:  sp=> (sp.h||2)*2.4*0.8 + 0.6,
+  fuelstn:()=> 8.0,
+  toll:   ()=> 0,                  // the gantry spans the road on purpose
+  tree:   ()=> 1.3, msasa:()=>1.5, pine:()=>1.1,
+  jacaranda:()=>1.6, flamboyant:()=>1.7, acacia:()=>1.9, mopane:()=>1.2,
+  marula:()=>1.5, baobab:()=>2.6, wildfig:()=>2.0, teak:()=>1.4,
+  eucalyptus:()=>1.0, palm:()=>0.8, boulder:()=>1.4,
+  pole:   ()=> 0.12, sign:()=>0.1, board:()=>0.2, robot:()=>0.14, pedsig:()=>0.12,
+  chevronPost:()=>0.1, vendor:()=>0.35, kid:()=>0.3
+};
+function placeOffset(off, kind, extra){
+  if(off === '' || off === undefined || off === null) return off;
+  const fp = FOOTPRINT[kind];
+  if(!fp) return off;
+  const halfW = fp(extra||{}) / HW_M;                 // metres → lane units
+  const side = off < 0 ? -1 : 1;
+  const needed = RESERVE_EDGE + halfW;
+  return Math.abs(off) < needed ? side*needed : off;
+}
 function sp(i, code, off, kind, extra){
   if(i<0||i>=G.segs.length) return;
-  G.segs[i].sprites.push(Object.assign({code:code, off:off, kind:kind||'sign'}, extra||{}));
+  kind = kind || 'sign';
+  const placed = placeOffset(off, kind, extra);
+  const obj = Object.assign({code:code, off:placed, kind:kind}, extra||{});
+  G.segs[i].sprites.push(obj);
+  registerCollider(i, obj, placed, kind, extra);
 }
 function arrows(i){ const s = G.segs[i]; if(s) s.arrow = true; }
+function oneWay(a, b){
+  for(let i=a;i<b;i++){ const s = G.segs[i]; if(s){ s.oneway = true; s.line = 'none'; } }
+  sp(a, 'C_ONEWAY', -1.35, 'sign');
+  sp(b-2, 'B_NO_ENTRY', 1.35, 'sign');       // facing anyone who tries to enter against it
+}
+
+/* =====================================================================
+   COLLISION
+   Lightweight and mobile-friendly: static objects get a circle in (segment,
+   lateral) space, which is far cheaper than world-space boxes because the
+   road is the natural coordinate system here. Vehicles and animals get an
+   oriented box tested along the same two axes. Nothing uses mesh collision.
+   ===================================================================== */
+const SOLID = {
+  tower:1, house:1, shop:1, shack:1, hut:1, kopje:1, pole:1, sign:1, board:1,
+  robot:1, pedsig:1, chevronPost:1, fuelstn:1
+};
+const COLLIDER_CAT = {
+  tower:'building', house:'building', shop:'building', shack:'building', hut:'building',
+  kopje:'rock', pole:'pole', sign:'sign', board:'sign', robot:'pole', pedsig:'pole',
+  chevronPost:'post', fuelstn:'building'
+};
+function registerCollider(i, obj, off, kind, extra){
+  if(!SOLID[kind] || off === '' || off === undefined || off === null) return;
+  const fp = FOOTPRINT[kind];
+  const r = fp ? fp(extra||{}) : 1;
+  G.colliders = G.colliders || [];
+  G.colliders.push({z:i*SEG, x:off, r:r, cat:COLLIDER_CAT[kind]||'object', kind:kind, i:i});
+}
+function collidersNear(pos, rangeM){
+  const out = [], R = (rangeM||30)*WPM;
+  (G.colliders||[]).forEach(c=>{ const d = dz(pos, c.z); if(d > -R && d < R) out.push(c); });
+  return out;
+}
+/* the player's own box, in metres */
+function playerBox(){
+  const v = Save.car(), d = (typeof CAR_DIMS !== 'undefined' && CAR_DIMS[v.body]) || {l:4.5,w:1.8};
+  return {l:d.l, w:d.w};
+}
+function impact(kind, closingKmh, label, tip){
+  const sev = closingKmh < 14 ? 'light' : closingKmh < 34 ? 'serious' : 'severe';
+  const dmg = sev==='light' ? 4 : sev==='serious' ? 16 : 34;
+  G.damage = Math.min(100, (G.damage||0) + dmg);
+  G.collisions = (G.collisions||0) + 1;
+  G.shake = Math.max(G.shake||0, sev==='light' ? 0.35 : sev==='serious' ? 0.9 : 1.5);
+  G.stat.hit = (G.stat.hit||0) + 1;
+  // a real impact scrubs speed and knocks the car off line
+  G.speed *= sev==='light' ? 0.55 : sev==='serious' ? 0.2 : 0;
+  Audio2.buzz();
+  const sevWord = {light:'MINOR IMPACT', serious:'COLLISION', severe:'SERIOUS COLLISION'}[sev];
+  violate('crash_'+kind, sevWord+' — '+label,
+    tip + ' Damage now ' + Math.round(G.damage) + '%.',
+    sev==='light'?8:sev==='serious'?22:34, sev==='light'?1:sev==='serious'?3:4,
+    sev==='light'?250:sev==='serious'?700:1200, 3);
+  Instructor.say('crash','You have hit something. Stop, check the vehicle, and remember an accident must be reported within twenty-four hours.', 5, 'warn');
+  if(sev==='severe' && G.mission && !G.mission.learner){
+    G.failCrash = true;
+  }
+}
+function updateCollisions(dt){
+  if(!G.running || G.route.track) return;
+  const v0 = Save.car();
+
+  // ---- potholes are physical: they thump the suspension, shake the camera,
+  //      cost you speed and, taken fast, damage the car
+  for(const h of (G.hazards||[])){
+    if(h.kind!=='pothole') continue;
+    const dLong = dz(G.pos, h.z)/WPM, dLat = (h.x - G.x)*HW_M;
+    if(Math.abs(dLong) > 1.6 || Math.abs(dLat) > 1.1) continue;
+    if(h.hitAt && G.t - h.hitAt < 2) continue;
+    h.hitAt = G.t;
+    const sp0 = Math.abs(kmh());
+    const sev = Math.min(1, sp0/95);
+    G.shake = Math.max(G.shake||0, 0.25 + sev*0.85);
+    G.pitch = (G.pitch||0) - 0.03 - sev*0.05;
+    G.speed *= (1 - 0.05 - sev*0.10);
+    G.x += (Math.random()-0.5)*0.05*(1+sev);           // it pulls the wheel
+    Audio2.blip(70, 0.16, 'square', 0.10);
+    if(sp0 > 45){
+      G.damage = Math.min(100, (G.damage||0) + 3 + sev*7);
+      violate('pothole_hit','HIT A POTHOLE AT SPEED',
+        'Potholes are part of the road here. Scan well ahead, slow down, and only steer around one if the road is clear.',
+        6, 0, 200, 8);
+    } else {
+      alertMsgQuiet('🕳️ POTHOLE', 'Felt that one. Slow down and read the surface further ahead.');
+    }
+    break;
+  }
+  // ---- guardrails: hitting one is a real impact, and it keeps you on the road
+  for(const gr of (G.rails||[])){
+    const dLong = dz(G.pos, gr.z)/WPM, dLat = (gr.x - G.x)*HW_M;
+    if(Math.abs(dLong) > 4 || Math.abs(dLat) > 1.0) continue;
+    if(gr.hitAt && G.t - gr.hitAt < 2.5) continue;
+    gr.hitAt = G.t;
+    impact('guardrail', Math.abs(kmh())*0.55, 'you scraped the guardrail',
+      'The barrier is there because there is a drop behind it. Keep to your lane through the bends.');
+    G.x = gr.x - Math.sign(gr.x)*0.09;                 // it holds you on the carriageway
+    G.speed *= 0.8;
+    break;
+  }
+  const spd = Math.abs(kmh()), box = playerBox();
+  const halfW = box.w*0.5, halfL = box.l*0.5;
+  // ---- static objects
+  const near = collidersNear(G.pos, 25);
+  for(const c of near){
+    const dLong = dz(G.pos, c.z)/WPM;                  // metres ahead (+) or behind (−)
+    const dLat  = (c.x - G.x)*HW_M;                    // metres to the side
+    if(Math.abs(dLong) > halfL + c.r) continue;
+    if(Math.abs(dLat)  > halfW + c.r) continue;
+    if(c.hitAt && G.t - c.hitAt < 3) continue;
+    c.hitAt = G.t;
+    const names = {building:'a building', rock:'a granite outcrop', pole:'a pole',
+                   sign:'a road sign', post:'a chevron post', object:'a roadside object'};
+    impact('static', spd, 'you struck '+(names[c.cat]||'an obstacle'),
+      'Keep to your own lane and off the verge — everything beyond the shoulder is solid.');
+    // pushed back onto the road
+    G.x -= Math.sign(dLat || 1) * 0.12;
+    break;
+  }
+  // ---- other vehicles
+  for(const car of (G.cars||[])){
+    const dLong = dz(G.pos, car.z)/WPM;
+    const dLat  = (car.x - G.x)*HW_M;
+    const cd = (typeof CAR_DIMS !== 'undefined' && CAR_DIMS[car.t]) || {l:4.5,w:1.8};
+    if(Math.abs(dLong) > halfL + cd.l*0.5) continue;
+    if(Math.abs(dLat)  > halfW + cd.w*0.5) continue;
+    if(car.hitAt && G.t - car.hitAt < 3) continue;
+    car.hitAt = G.t;
+    const closing = car.dir > 0 ? Math.abs(spd - car.spd) : (spd + car.spd);
+    if(car.dir < 0){
+      impact('headon', closing, 'a head-on collision with oncoming traffic',
+        'You crossed onto the wrong side of the road. Zimbabwe drives on the LEFT.');
+    } else if(Math.abs(dLat) > halfW*0.8){
+      impact('sideswipe', closing, 'you side-swiped another vehicle',
+        'Check your mirrors and blind spot, and signal, before you change lane.');
+    } else {
+      impact('rearend', closing, 'you ran into the vehicle in front',
+        'One car length for every 15 km/h. You had nowhere to stop.');
+    }
+    car.spd *= 0.5; car.brake = true;
+    break;
+  }
+  // ---- livestock
+  for(const h of (G.hazards||[])){
+    if(h.kind!=='cattle' && h.kind!=='goats' && h.kind!=='wagon' && h.kind!=='breakdown') continue;
+    const dLong = dz(G.pos, h.z)/WPM, dLat = (h.x - G.x)*HW_M;
+    const r = h.kind==='wagon' ? 1.6 : h.kind==='breakdown' ? 2.3 : 1.1;
+    if(Math.abs(dLong) > halfL + r || Math.abs(dLat) > halfW + r) continue;
+    if(h.hitAt && G.t - h.hitAt < 4) continue;
+    h.hitAt = G.t;
+    const what = {cattle:'you hit a beast in the road', goats:'you hit a goat',
+                  wagon:'you hit a scotch cart', breakdown:'you hit a broken-down vehicle'}[h.kind];
+    impact('hazard', spd, what,
+      'Zimbabwe is a cattle country. Slow right down for animals and stopped vehicles, and pass only when clear.');
+    break;
+  }
+}
 function junction(i, kind){
   const s = G.segs[i]; if(!s) return;
   const j = {i:i, z:i*SEG, kind:kind, state:'green', t:rnd(0,9), cross:null, done:false,
@@ -1112,7 +1356,15 @@ function junction(i, kind){
                       sp(i,'D_ROBOT',-1.15,'robot'); sp(i,'D_ROBOT',1.15,'robot'); }
   if(kind==='stop'){ sp(i,'B_STOP',-1.25,'sign'); }
   if(kind==='giveway'){ sp(i,'B_GIVEWAY',-1.25,'sign'); }
-  if(kind==='circle'){ sp(i-24,'A_CIRCLE',-1.3,'sign'); sp(i,'B_GIVEWAY',-1.2,'sign'); }
+  if(kind==='circle'){
+    sp(i-24,'A_CIRCLE',-1.3,'sign'); sp(i,'B_GIVEWAY',-1.2,'sign');
+    // give-way markings on the approach, and a physical island with chevrons
+    for(let k=i-4;k<=i-1;k++){ const sg = G.segs[k]; if(sg) sg.giveline = true; }
+    const j0 = G.segs[i]; if(j0){ j0.island = true; }
+    // in left-hand traffic the circulation runs CLOCKWISE seen from above
+    G.circles = G.circles || [];
+    G.circles.push({z:i*SEG, r:11, dirn:'clockwise', occupancy:0, t:Math.random()*6});
+  }
   if(kind==='rail'){ sp(i-26,'B_RAIL',-1.3,'sign'); sp(i,'B_RAIL',-1.15,'sign'); sp(i,'B_RAIL',1.15,'sign'); }
   return j;
 }
@@ -1125,6 +1377,7 @@ function setLine(from, to, kind){
 }
 
 function buildRoute(id){
+  G.colliders = []; G.rails = []; G.circles = [];
   const r = ROUTES[id];
   G.segs = []; G.junctions = []; G.cars = []; G.hazards = []; G.routeId = id; G.route = r;
   r.plan.forEach(stage=>{
@@ -1149,10 +1402,51 @@ function buildRoute(id){
   placeStations();
   G.path3 = false;
   if(typeof buildPath3D === 'function'){ try{ buildPath3D(); }catch(e){} }
+  if(typeof buildTerrain === 'function'){ try{ buildTerrain(); }catch(e){} }
   // stitch the loop flat-ish so it can run endlessly
   return r;
 }
 
+/* pick a species for this environment, weighted toward the first listed */
+function speciesFor(prof, i){
+  const list = prof.trees.species;
+  const r = segHash(i, 61);
+  const idx = Math.min(list.length-1, Math.floor(r*r*list.length*1.35));
+  return list[idx];
+}
+/* scatter vegetation and granite for a stretch: clumped and irregular, driven
+   by the environment profile rather than a fixed modulo pattern */
+function scatterVegetation(a, b, zone){
+  // the route may name its own profile for this zone — that is how Hwange gets
+  // acacia and mopane while the same 'rural' zone in Chivhu gets msasa
+  const named = G.route && G.route.profiles && G.route.profiles[zone];
+  const prof = ENV_PROFILES[named] || ENV_PROFILES[ZONE_TO_PROFILE[zone]] || ENV_PROFILES.RURAL_HIGHVELD;
+  const dens = prof.trees.density;
+  const hMin = prof.trees.height[0], hMax = prof.trees.height[1];
+  for(let i=a+4;i<b-4;i++){
+    // a slow noise field decides where the woodland thickens and thins
+    const clump = 0.5 + 0.5*Math.sin(i*0.055 + segHash(a,71)*9)*Math.cos(i*0.017 + segHash(a,72)*7);
+    if(segHash(i,73) > dens*0.22*(0.35 + clump)) continue;
+    const kind = speciesFor(prof, i);
+    const side = segHash(i,74) < 0.5 ? -1 : 1;
+    const h = (hMin + segHash(i,76)*(hMax-hMin)) / 2.6;
+    sp(i,'', side*(ROAD_EDGE + 0.5 + segHash(i,75)*2.6), kind,
+       {h:h, rot:segHash(i,77)*6.28});
+    // a second, smaller tree set back, so the roadside reads as woodland
+    if(segHash(i,78) < 0.35*dens)
+      sp(i,'', side*(ROAD_EDGE + 2.6 + segHash(i,79)*3.4), speciesFor(prof, i+13),
+         {h:h*(0.7+segHash(i,80)*0.5), rot:segHash(i,86)*6.28});
+  }
+  // granite boulders and outcrops where the profile calls for them
+  if(prof.rock > 0.05){
+    for(let i=a+8;i<b-8;i++){
+      if(segHash(i,81) > prof.rock*0.055) continue;
+      const side = segHash(i,82) < 0.5 ? -1 : 1;
+      sp(i,'', side*(ROAD_EDGE + 1.4 + segHash(i,83)*3.6), 'kopje',
+         {h: 0.8 + segHash(i,84)*(prof.rock*3.2), rot:segHash(i,85)*6.28});
+    }
+  }
+}
 function decorate(zone, a, b){
   const z = ZONE[zone];
   // ----- speed-limit signage
@@ -1175,7 +1469,6 @@ function decorate(zone, a, b){
     } else if(zone==='suburb'||zone==='school'){
       if(i%5===0) sp(i,'',-1.7,'house',{c:pick(['#e8e4d5','#f2d6a8','#dfe7ef','#f0cfc0'])});
       if(i%5===2) sp(i,'',1.7,'house',{c:pick(['#e8e4d5','#f2d6a8','#dfe7ef'])});
-      if(i%4===1) sp(i,'',side()*1.35,'tree',{h:rnd(1,1.9)});
       if(zone==='school'&&i%9===0) sp(i,'',side()*1.2,'kid');
     } else if(zone==='town'){
       if(i%4===0) sp(i,'',-1.75,'shop',{c:pick(['#f0b429','#2ea36a','#e05a4a','#3f7bd0'])});
@@ -1183,32 +1476,31 @@ function decorate(zone, a, b){
       if(i%17===3) sp(i,'',side()*1.3,'vendor');
     } else if(zone==='peri'){
       if(i%6===0) sp(i,'',side()*1.6,'shack');
-      if(i%5===2) sp(i,'',side()*1.5,'tree',{h:rnd(1.1,2.1)});
       if(i%23===4) sp(i,'',-1.3,'vendor');
     } else if(zone==='highway'){
-      if(i%7===0) sp(i,'',side()*(1.6+Math.random()),'tree',{h:rnd(1.2,2.4)});
       if(i%90===40) sp(i,'C_DEST',-1.6,'board');
       if(i%120===60) sp(i,'C_FUEL',-1.5,'board');
     } else if(zone==='rural'){
-      if(i%9===0) sp(i,'',side()*(1.5+Math.random()*1.2),'msasa',{h:rnd(1.3,2.6)});
+    // Zimbabwe is a cattle country: guarantee livestock on a rural stretch
+    for(let i=a+40;i<b-20;i+=rnd(150,240)|0) hazard(i|0, Math.random()<0.7?'cattle':'goats');
       if(i%31===5) sp(i,'',side()*1.9,'hut');
-      if(i%47===12) sp(i,'',side()*2.4,'kopje',{h:rnd(2,3.6)});
     } else if(zone==='gravel'){
-      if(i%8===0) sp(i,'',side()*1.5,'msasa',{h:rnd(1,2)});
       if(i%40===9) sp(i,'',side()*1.8,'hut');
     } else if(zone==='mountain'){
-      if(i%6===0) sp(i,'',side()*(1.5+Math.random()),'pine',{h:rnd(1.8,3.4)});
-      if(i%29===8) sp(i,'',side()*2.2,'kopje',{h:rnd(2.4,4)});
       if(i%22===3) sp(i,'','', 'chevronPost',{off:1.25});
     } else if(zone==='track'){
       if(i%4===0){ sp(i,'',-1.2,'chevronPost'); sp(i,'',1.2,'chevronPost'); }
-      if(i%40===0) sp(i,'',side()*1.9,'tree',{h:1.6});
+      if(i%40===0) sp(i,'',side()*1.9,'msasa',{h:1.6});
     }
   }
+
+  if(zone !== 'avenue' && zone !== 'track') scatterVegetation(a, b, zone);
 
   // ----- lines, crossings, junctions, hazards
   if(zone==='cbd'){
     setLine(a,b,'broken');
+        if(b-a > 110){ const o1 = a+52, o2 = Math.min(b-16, o1+46); oneWay(o1, o2);
+      for(let i=o1;i<o2;i+=8) arrows(i); }
     for(let i=a+40;i<b-20;i+=rnd(48,72)|0){ const k=(i)|0; const kd = Math.random()<0.72?'robot':'stop';
       junction(k, kd); setLine(k-14,k+8,'continuous'); zebra(k+4, kd==='robot'); arrows(k-6); }
     for(let i=a+22;i<b;i+=34) ped(i);
@@ -1218,6 +1510,27 @@ function decorate(zone, a, b){
       setLine(k-12,k+8,'continuous'); }
     for(let i=a+30;i<b;i+=52) ped(i);
     for(let i=a+45;i<b;i+=64) cyclist(i);
+  } else if(zone==='avenue'){
+    // Harare's jacaranda avenues: dual carriageway, robots at the cross streets,
+    // and a closed canopy formed by trees on both kerbs and down the median
+    setLine(a,b,'broken');
+    for(let i=a+55;i<b-25;i+=rnd(75,115)|0){ const k=i|0;
+      junction(k, pick(['robot','robot','circle'])); setLine(k-14,k+8,'continuous');
+      zebra(k+5, true); arrows(k-7); }
+    for(let i=a+8;i<b-6;i+=3){
+      // irregular spacing and height, never a metronome of identical trees
+      if(segHash(i,31) > 0.72) continue;
+      const hgt = 3.4 + segHash(i,32)*1.9;
+      const lean = 0.16 + segHash(i,33)*0.16;
+      sp(i,'', -(ROAD_EDGE+0.34)-segHash(i,34)*0.12, pick(['jacaranda','jacaranda','flamboyant','msasa']),
+         {h:hgt, lean:lean, side:-1});
+      if(segHash(i,35) > 0.35)
+        sp(i,'',  (ROAD_EDGE+0.34)+segHash(i,36)*0.12, pick(['jacaranda','jacaranda','flamboyant','msasa']),
+           {h:hgt*(0.9+segHash(i,37)*0.25), lean:lean, side:1});
+      if(segHash(i,38) > 0.6) sp(i,'', 0, 'jacaranda', {h:hgt*0.85, lean:0, median:true});
+    }
+    for(let i=a+26;i<b;i+=46) ped(i);
+    for(let i=a+40;i<b;i+=70) cyclist(i);
   } else if(zone==='school'){
     setLine(a,b,'continuous'); zebra(a+42); zebra(a+70);
     junction(a+20,'giveway');
@@ -1234,11 +1547,13 @@ function decorate(zone, a, b){
   } else if(zone==='highway'){
     setLine(a,b,'broken');
     for(let i=a+70;i<b-40;i+=rnd(120,200)|0){
-      if(Math.random()<0.35){ junction(i|0,'rail'); }
+      if(Math.random()<0.35 && !G.route.noRail){ junction(i|0,'rail'); }
       else { hazard(i,'pothole'); setLine(i-10,i+6,'continuous'); sp(i-20,'A_UNEVEN',-1.3,'sign'); }
     }
     for(let i=a+90;i<b;i+=150) hazard(i,'breakdown');
   } else if(zone==='rural'){
+    // Zimbabwe is a cattle country: guarantee livestock on a rural stretch
+    for(let i=a+40;i<b-20;i+=rnd(150,240)|0) hazard(i|0, Math.random()<0.7?'cattle':'goats');
     setLine(a,b,'broken');
     for(let i=a+60;i<b-30;i+=rnd(80,150)|0){
       const roll = Math.random();
@@ -1259,6 +1574,15 @@ function decorate(zone, a, b){
     for(let i=a+30;i<b;i+=48){ const s=G.segs[i]; if(!s) continue;
       sp(i, s.curve<0?'A_BEND_L':'A_BEND_R', -1.3,'sign'); }
     for(let i=a+70;i<b;i+=110){ sp(i,'A_DESCENT',-1.3,'sign'); hazard(i+16,'truckSlow'); }
+    // guardrail along the outside of the bends, where the ground falls away
+    for(let i=a;i<b;i++){
+      const sg = G.segs[i]; if(!sg) continue;
+      if(Math.abs(sg.curve) < 1.4) continue;
+      const side = sg.curve > 0 ? -1 : 1;
+      sg.rail = side;
+      G.rails = G.rails || [];
+      G.rails.push({z:i*SEG, x:side*1.22, i:i});
+    }
     for(let i=a+55;i<b;i+=95) hazard(i,'pothole');
   } else if(zone==='track'){
     setLine(a,b,'none');
@@ -1315,7 +1639,8 @@ function gearRatios(){
 }
 function limitHere(){ const s = segAt(G.pos); return s?s.limit:60; }
 function grip(){
-  let g = 1;
+  let g = 1 - Math.min(0.22, (G.damage||0)/450);   // a damaged car handles worse
+
   if(G.wx==='rain') g = 0.68; else if(G.wx==='mist') g = 0.88;
   const s = segAt(G.pos); if(s && s.zone==='gravel') g *= 0.8;
   if(Math.abs(G.x)>1) g *= 0.62;
@@ -1398,6 +1723,7 @@ function updatePhysics(dt){
     if(G.brake>0.85 && grip()<0.95) G.abs = true;
   }
   if(Math.abs(G.x)>1) a -= Math.sign(G.speed)*2.1;   // off the tar
+  G.accelMs = a;
   G.speed += a*dt;
   if(!isManual() && (G.gearSel==='P'||G.gearSel==='N')){ G.speed -= Math.sign(G.speed)*Math.min(Math.abs(G.speed), (G.gearSel==='P'?9:1.2)*dt); }
   if(G.brake>0.4 && Math.abs(G.speed)<0.35) G.speed = 0;
@@ -1410,12 +1736,60 @@ function updatePhysics(dt){
   const topMs = Save.car().top/KMH;
   if(G.speed>topMs) G.speed = topMs;
 
-  // steering + centrifugal pull on curves
+  /* ---------------- steering: a bicycle model ----------------
+     The car has a real heading of its own. Steering produces a yaw rate from
+     road speed, wheelbase and steering angle; the car then travels along its
+     own heading, and its lateral position on the road follows from the angle
+     between the car's heading and the road's. Understeer, grip and
+     speed-dependent sensitivity all fall out of this rather than being faked. */
   const spd = Math.abs(G.speed);
-  const auth = 1.15*Math.min(1, 0.35 + spd/26);
-  G.x += G.steer*dt*auth*(G.speed>=0?1:-1);
-  if(s) G.x -= dt*spd*s.curve*0.00042*(1.6/Math.max(0.5,grip()));
+  const wheelBase = v.wheelBase || (1.9 + v.mass/1500);
+  // less lock at speed: full lock parking, a few degrees at 120
+  const maxLock = MAX_STEER * (0.34 + 0.66/(1 + spd/9));
+  let steerAngle = G.steer * maxLock;
+  // understeer: beyond the tyres' grip the front washes out
+  const latAccel = spd*spd*Math.tan(Math.abs(steerAngle))/Math.max(0.6, wheelBase);
+  const latMax = 8.4*grip();
+  if(latAccel > latMax){
+    const wash = latMax/latAccel;
+    steerAngle *= wash;
+    if(spd > 12 && !G.rt.usT){ G.rt.usT = G.t;
+      Instructor.say('understeer','You are asking too much of the front tyres — ease off and straighten up.', 9, 'warn'); }
+    G.understeer = 1 - wash;
+  } else { G.understeer = 0; G.rt.usT = 0; }
+  const yawRate = (G.speed/Math.max(0.6, wheelBase)) * Math.tan(steerAngle);
+  G.yawRate = yawRate;
+  G.heading = (G.heading||0) + yawRate*dt;
+  // the road's own heading at this point
+  const roadH = (typeof pathAt === 'function' && G.path3) ? pathAt(G.pos).h : (G.roadH||0);
+  G.roadH = roadH;
+  // keep the car's heading anchored to the road, and convert the difference
+  // into lateral drift across the carriageway
+  let yawErr = G.heading - roadH;
+  while(yawErr >  Math.PI) yawErr -= Math.PI*2;
+  while(yawErr < -Math.PI) yawErr += Math.PI*2;
+  yawErr = Math.max(-0.62, Math.min(0.62, yawErr));
+  /* Hands off, a real driver still makes constant small corrections to hold the
+     line through a bend. With only two steering buttons the player cannot do
+     that at the same rate, so an assist bleeds off the yaw error when no
+     steering is being asked for. It is an assist, not physics — it can be
+     turned off in Settings, and it never fights an input the player is giving. */
+  const steerInput = Math.abs(G.steer);
+  if(Save.d.laneAssist !== false && steerInput < 0.12 && Math.abs(G.speed) > 1){
+    const k = Math.min(1, dt*2.6*(1 - steerInput/0.12));
+    yawErr -= yawErr*k;
+  }
+  G.heading = roadH + yawErr;
+  G.yawErr = yawErr;
+  G.x += (G.speed * Math.sin(yawErr) * dt) / HW_M;
+  // centrifugal push to the outside of a bend
+  if(s) G.x -= dt*spd*s.curve*0.00030*(1.6/Math.max(0.5,grip()));
   G.x = Math.max(-2.4, Math.min(2.4, G.x));
+  // body attitude: pitch under acceleration and braking, roll in a corner
+  const targetPitch = Math.max(-0.05, Math.min(0.05, -(G.accelMs||0)*0.0045));
+  G.pitch = (G.pitch||0) + (targetPitch - (G.pitch||0))*Math.min(1, dt*5);
+  const targetRoll = Math.max(-0.09, Math.min(0.09, -yawRate*spd*0.010));
+  G.roll = (G.roll||0) + (targetRoll - (G.roll||0))*Math.min(1, dt*4.5);
 
   // travel
   G.pos = loopZ(G.pos + G.speed*WPM*dt);
@@ -1431,17 +1805,60 @@ function updatePhysics(dt){
 }
 
 /* ------------------------------------------------------------ traffic AI */
+/* =====================================================================
+   DRIVER PERSONALITIES
+   Every AI vehicle gets one. They change target speed relative to the limit,
+   following distance, reaction time, how progressively it brakes, how willing
+   it is to overtake, and how reliably it indicates. This is what makes CBD
+   traffic feel different from a haulage truck on the A3.
+   ===================================================================== */
+const PERSONALITIES = {
+  cautious:  {spd:0.86, gap:2.6, react:1.10, accel:1.7, brake:5.0, overtake:0.10, indicate:1.00, stopLine:1.25},
+  normal:    {spd:1.00, gap:1.9, react:0.80, accel:2.4, brake:6.0, overtake:0.35, indicate:0.92, stopLine:1.00},
+  impatient: {spd:1.10, gap:1.3, react:0.55, accel:3.2, brake:7.2, overtake:0.70, indicate:0.65, stopLine:0.80},
+  aggressive:{spd:1.20, gap:0.95,react:0.42, accel:3.9, brake:8.4, overtake:0.90, indicate:0.42, stopLine:0.65},
+  learner:   {spd:0.74, gap:3.1, react:1.35, accel:1.3, brake:4.2, overtake:0.02, indicate:1.00, stopLine:1.50},
+  kombi:     {spd:1.14, gap:1.1, react:0.50, accel:3.4, brake:7.6, overtake:0.80, indicate:0.45, stopLine:0.75},
+  truck:     {spd:0.80, gap:2.9, react:0.95, accel:0.9, brake:3.4, overtake:0.08, indicate:0.95, stopLine:1.40},
+  bus:       {spd:0.84, gap:2.6, react:0.90, accel:1.1, brake:3.8, overtake:0.10, indicate:0.95, stopLine:1.35},
+  pro:       {spd:0.98, gap:2.2, react:0.62, accel:2.2, brake:6.2, overtake:0.30, indicate:1.00, stopLine:1.10}
+};
+function pickPersonality(type, zone){
+  if(type==='truck') return 'truck';
+  if(type==='bus')   return 'bus';
+  if(type==='kombi') return 'kombi';
+  const urban = zone==='cbd'||zone==='town'||zone==='peri';
+  const pool = urban
+    ? ['normal','normal','impatient','cautious','aggressive','learner','pro']
+    : ['normal','normal','pro','cautious','impatient','truck'];
+  return pick(pool);
+}
+
 const CAR_TYPES = [
-  {t:'hatch', c:['#f2f5ff','#c9d3e6','#2f6fd0','#c0392b','#e8b93c'], spd:[46,62]},
-  {t:'sedan', c:['#f4f7ff','#1b2a55','#5b6b86','#7d1f1f'], spd:[50,68]},
-  {t:'suv',   c:['#fafbff','#2b3a2e','#4a4f5e','#b0b6c4'], spd:[48,64]},
-  {t:'kombi', c:['#eff3fa','#e9edf5'], spd:[44,60]},
-  {t:'bus',   c:['#2ea36a','#e05a4a','#3f7bd0'], spd:[40,56]},
-  {t:'truck', c:['#d9dee9','#3f4a63','#8a5a2b'], spd:[36,52]}
+  // the mix you actually meet on a Zimbabwean road
+  {t:'hatch', n:'Honda Fit',            c:['#f2f5ff','#c9d3e6','#2f6fd0','#8fa2c4','#e8b93c'], spd:[46,62], psv:false},
+  {t:'hatch', n:'Toyota Aqua',          c:['#eef2fb','#5fb6c9','#b8c4d8','#f2f5ff'],          spd:[46,60], psv:false},
+  {t:'sedan', n:'Toyota Corolla',       c:['#f4f7ff','#5b6b86','#1b2a55','#c0c7d6'],          spd:[50,68], psv:false},
+  {t:'sedan', n:'Mercedes-Benz C-Class',c:['#0f1420','#f4f7ff','#7d8698','#2f3a5c'],          spd:[54,72], psv:false},
+  {t:'suv',   n:'Toyota Fortuner GD-6', c:['#fafbff','#2b3a2e','#4a4f5e','#b0b6c4'],          spd:[48,64], psv:false},
+  {t:'suv',   n:'Land Cruiser 79',      c:['#f2f5ff','#d8d2c4','#3c4a3a','#8d94a6'],          spd:[44,58], psv:false},
+  {t:'kombi', n:'Toyota Hiace (SB)',    c:['#eff3fa','#e9edf5','#f2f5ff'],                    spd:[44,62], psv:true},
+  {t:'kombi', n:'Hiace high-roof',      c:['#f2f5ff','#eff3fa','#dfe7ef'],                    spd:[44,60], psv:true},
+  {t:'kombi', n:'Nissan Caravan',       c:['#eef2fb','#f2f5ff','#cfd8e8'],                    spd:[42,58], psv:true},
+  {t:'bus',   n:'AVM coach',            c:['#2ea36a','#e05a4a','#3f7bd0'],                    spd:[40,56], psv:true},
+  {t:'bus',   n:'Yutong coach',         c:['#f2f5ff','#3f7bd0','#e0a13a'],                    spd:[42,58], psv:true},
+  {t:'truck', n:'Haulage tractor-unit', c:['#d9dee9','#3f4a63','#8a5a2b'],                    spd:[36,52], psv:false},
+  {t:'truck', n:'Tanker',               c:['#c9d3e6','#8d94a6','#5b6b86'],                    spd:[34,50], psv:false}
 ];
+/* Zimbabwean number plates: ordinary vehicles are black on white; a public
+   service vehicle carries RED characters on a white ground. */
+const PLATE_ORD = {bg:'#f4f7ff', ink:'#101521'};
+const PLATE_PSV = {bg:'#f4f7ff', ink:'#E3342F'};
+const PLATE_STATE = {bg:'#f4f7ff', ink:'#101521'};
 function spawnCars(){
   const s = segAt(G.pos); if(!s) return;
-  const z = ZONE[s.zone], want = Math.round(9*z.dens), wantO = Math.round(7*z.onc);
+  const td = Q().traffic;
+  const z = ZONE[s.zone], want = Math.round(9*z.dens*td), wantO = Math.round(7*z.onc*td);
   let same=0, onc=0;
   G.cars.forEach(c=> c.dir>0?same++:onc++);
   for(let k=same;k<want;k++) newCar(1);
@@ -1451,49 +1868,176 @@ function newCar(dir){
   const s = segAt(G.pos); if(!s) return;
   const z = ZONE[s.zone];
   const heavy = Math.random()<0.22;
-  const T = heavy ? CAR_TYPES[4+((Math.random()*2)|0)] : CAR_TYPES[(Math.random()*4)|0];
+  const heavies = CAR_TYPES.filter(t=>t.t==='truck'||t.t==='bus');
+  const lights  = CAR_TYPES.filter(t=>t.t!=='truck'&&t.t!=='bus');
+  // kombis are the backbone of urban and peri-urban traffic here
+  const urban = s.zone==='cbd'||s.zone==='town'||s.zone==='peri'||s.zone==='suburb';
+  let pool = heavy ? heavies : lights;
+  if(!heavy && urban && Math.random()<0.30) pool = CAR_TYPES.filter(t=>t.t==='kombi');
+  const T = pick(pool);
   const base = z.limit>90 ? rnd(78,104) : z.limit>70 ? rnd(58,78) : rnd(38,56);
   const spd = Math.min(base, T.t==='truck'||T.t==='bus' ? 80 : 120)/KMH;
   const ahead = dir>0 ? rnd(600,DRAW*SEG*0.92) : rnd(1200,DRAW*SEG);
+  const pid = pickPersonality(T.t, s.zone), P = PERSONALITIES[pid];
+  const dims = (typeof CAR_DIMS !== 'undefined' && CAR_DIMS[T.t]) || {l:4.5,w:1.8};
+  const startZ = loopZ(G.pos + ahead);
+  // never spawn on top of the player, inside another vehicle, or against a one-way
+  if(Math.abs(dz(G.pos, startZ))/WPM < 12) return;
+  const startSeg = segAt(startZ);
+  if(dir < 0 && startSeg && startSeg.oneway) return;
+  const lane = dir>0 ? (Math.random()<0.82?LANES.ours:LANES.oursInner)
+                     : (Math.random()<0.85?LANES.onc:LANES.oncInner);
+  for(const other of G.cars){
+    if(Math.abs(other.x - lane) > 0.34) continue;
+    if(Math.abs(dz(other.z, startZ))/WPM < dims.l + 3) return;
+  }
   G.cars.push({
-    z: loopZ(G.pos + ahead), dir:dir, t:T.t, c:pick(T.c), spd:spd, v:spd,
-    x: dir>0 ? (Math.random()<0.75?LANES.ours:LANES.oursInner) : (Math.random()<0.8?LANES.onc:LANES.oncInner),
-    tx: 0, indL:false, indR:false, brake:false, heavy:(T.t==='truck'||T.t==='bus'), lane:0, wait:0
+    z: startZ, dir:dir, t:T.t, model:T.n, psv:!!T.psv, c:pick(T.c),
+    spd:spd*P.spd, v:spd*P.spd, target:spd*P.spd,
+    x: lane, tx: lane, pers:pid, P:P, react:0, len:dims.l, wid:dims.w,
+    indL:false, indR:false, brake:false, heavy:(T.t==='truck'||T.t==='bus'),
+    lane:0, wait:0, queued:false, overtaking:false
   });
-  const c = G.cars[G.cars.length-1]; c.tx = c.x;
 }
 function updateCars(dt){
   const nowLim = limitHere();
+  // one-way sections carry no opposing traffic: remove any that strays in
+  for(let i=G.cars.length-1;i>=0;i--){
+    const c0 = G.cars[i];
+    if(c0.dir >= 0) continue;
+    const cs0 = segAt(c0.z);
+    if(cs0 && cs0.oneway) G.cars.splice(i,1);
+  }
   for(let i=G.cars.length-1;i>=0;i--){
     const c = G.cars[i], d = dz(G.pos, c.z);
     if(c.dir>0 && (d < -900 || d > DRAW*SEG*1.15)){ G.cars.splice(i,1); continue; }
     if(c.dir<0 && (d < -700 || d > DRAW*SEG*1.2)){ G.cars.splice(i,1); continue; }
-    let target = c.spd; c.brake = false;
-    // obey robots / stop signs (same direction only)
+    const P = c.P || PERSONALITIES.normal;
+    const seg = segAt(c.z), lim = seg ? seg.limit : nowLim;
+    // heavy vehicles are held to 80, whoever is driving
+    const cap = (c.heavy ? Math.min(80, lim) : lim) / 3.6;
+    let target = Math.min(c.spd, cap*P.spd);
+    c.brake = false;
+    // reaction time: an AI driver does not re-plan every frame
+    c.react -= dt;
+    if(c.react <= 0){ c.react = P.react*(0.7+Math.random()*0.6); c.plan = null; }
+
     if(c.dir>0){
-      const j = nextJunctionFrom(c.z, 60*WPM);
+      // ---- junction: stop AT the stop line, not somewhere near it
+      const j = nextJunctionFrom(c.z, 90*WPM);
       if(j){
-        const gap = dz(c.z, j.z)/WPM;
-        const mustStop = (j.kind==='robot' && (j.state==='red'||j.state==='amber')) ||
-                         (j.kind==='stop') || (j.kind==='rail' && G.train);
-        if(mustStop && gap>0){ target = Math.min(target, Math.max(0, gap*0.42)); if(gap<26) c.brake = true; }
+        const gap = dz(c.z, j.z)/WPM - 2.2;               // the line sits just before the junction
+        const mustStop = (j.kind==='robot' && (j.state==='red'||j.state==='redamber'||
+                            (j.state==='amber' && gap > c.v*1.1))) ||
+                         (j.kind==='stop') || (j.kind==='rail' && G.train) ||
+                         (j.kind==='giveway' && j.busy) || (j.kind==='circle' && j.busy);
+        if(mustStop && gap > -1){
+          /* Stop ON the line, not past it. Work out the deceleration this stop
+             actually requires — v² / 2s — and start braking once that exceeds a
+             comfortable rate, allowing for this driver's reaction time. */
+          // once braking has started, aim exactly at the line; before that,
+          // allow a reaction-time margin so the driver commits in good time
+          const margin = c.stopping ? 0.25 : c.v*P.react*0.4;
+          const s0 = Math.max(0.3, gap - margin);
+          const needA = (c.v*c.v)/(2*s0);
+          if(c.stopping || needA > P.brake*0.45 || gap < 4){
+            c.stopping = true;
+            c.stopA = Math.max(0.4, Math.min(P.brake*1.3, needA));
+            c.brake = true;
+            target = 0;
+          }
+          if(gap < 2.5 && c.v < 1.2){ c.queued = true; c.wait += dt; }
+        } else { c.queued = false; c.stopA = 0; c.stopping = false; }
+        // stop signs need a genuine pause before moving off
+        if(j.kind==='stop' && c.queued && c.wait > 1.4 + P.react) { c.queued = false; c.wait = 0; c.stopping = false; c.stopA = 0; j.busy = false; }
+        // occupy the junction briefly so cross traffic yields, then release it
+        if(Math.abs(gap) < 6){ j.busy = true; j.busyT = G.t; }
       }
-      // car ahead
+      // ---- the vehicle in front, at this personality's following distance
       let lead = null, leadGap = 1e9;
-      G.cars.forEach(o=>{ if(o!==c&&o.dir>0&&Math.abs(o.x-c.x)<0.34){ const g = dz(c.z,o.z)/WPM;
-        if(g>0&&g<leadGap){ leadGap=g; lead=o; } }});
-      if(lead && leadGap < 34){ target = Math.min(target, lead.v*(leadGap<14?0.7:0.95)); if(leadGap<18) c.brake = true; }
-      // hazards ahead (cattle etc.)
-      G.hazards.forEach(h=>{ const g = dz(c.z,h.z)/WPM;
-        if(g>0&&g<30&&(h.kind==='cattle'||h.kind==='goats'||h.kind==='wagon'||h.kind==='ped'||h.kind==='kid')) target = Math.min(target, 5); });
+      for(const oo of G.cars){
+        if(oo===c || oo.dir<0 || Math.abs(oo.x-c.x)>0.34) continue;
+        const g = dz(c.z,oo.z)/WPM - (oo.len||4.5)*0.5 - (c.len||4.5)*0.5;
+        if(g>0 && g<leadGap){ leadGap=g; lead=oo; }
+      }
+      const wantGap = Math.max(6, c.v*P.gap*0.55);
+      if(lead && leadGap < wantGap*2.2){
+        const ratio = Math.max(0, Math.min(1, leadGap/Math.max(1,wantGap)));
+        target = Math.min(target, lead.v*(0.55 + 0.45*ratio));
+        if(leadGap < wantGap*0.9) c.brake = true;
+        if(leadGap < wantGap*0.35){ target = Math.min(target, lead.v*0.4); }
+        // ---- overtaking, if this driver is the sort who does and the line allows it
+        const canCross = !seg || seg.line === 'broken';
+        if(canCross && !c.overtaking && Math.random() < P.overtake*dt*0.9 &&
+           lead.v < c.spd*0.86 && c.v > 8){
+          let clear = true;
+          for(const oo of G.cars){
+            if(oo===c) continue;
+            const g2 = dz(c.z,oo.z)/WPM;
+            if(oo.dir<0 && g2 > 0 && g2 < 130) { clear = false; break; }
+            if(oo.dir>0 && Math.abs(oo.x - LANES.oursInner) < 0.3 && g2 > -8 && g2 < 55) { clear = false; break; }
+          }
+          if(clear){ c.overtaking = true; c.tx = LANES.oursInner; c.otT = 0; }
+        }
+      }
+      if(c.overtaking){
+        c.otT = (c.otT||0) + dt;
+        target = Math.min(c.spd*1.06, cap*1.02);
+        // return to the left as soon as the way is clear — keeping left is the rule
+        const passed = !lead || leadGap > 14 || c.otT > 9;
+        if(passed && Math.abs(c.x - LANES.oursInner) < 0.06){ c.tx = LANES.ours; }
+        if(passed && Math.abs(c.x - LANES.ours) < 0.06){ c.overtaking = false; c.otT = 0; }
+      }
+      // ---- hazards, pedestrians and livestock
+      for(const h of G.hazards){
+        const g = dz(c.z,h.z)/WPM;
+        if(g<=0 || g>36) continue;
+        if(h.kind==='cattle'||h.kind==='goats'||h.kind==='wagon'){ target = Math.min(target, 4); c.brake = g<18; }
+        else if((h.kind==='ped'||h.kind==='kid') && (h.state==='cross'||h.state==='freeze')){
+          target = Math.min(target, g<14 ? 0 : 4); c.brake = true;
+        }
+        else if(h.kind==='breakdown'||h.kind==='truckSlow'){ target = Math.min(target, 9); }
+      }
+      // ---- give way to an emergency vehicle: pull left and stop
+      // ---- give way to an emergency vehicle: extreme left and stop.
+      //      Traffic reacts whether it is coming up behind or approaching head-on.
+      if(G.emerg){
+        const ge = dz(c.z, G.emerg.z)/WPM;
+        if(Math.abs(ge) < 260){ c.tx = LANES.ours; target = Math.min(target, 3); c.brake = true; }
+      }
+      // ---- avoid running into the player
+      const gp = dz(c.z, G.pos)/WPM;
+      if(gp > 0 && gp < 26 && Math.abs(G.x - c.x) < 0.34){
+        target = Math.min(target, Math.max(0, Math.abs(G.speed)*0.9 - (26-gp)*0.25));
+        if(gp < 15) c.brake = true;
+      }
     }
-    c.v += Math.max(-7, Math.min(3.2, (target-c.v)*1.6))*dt;
+    // ---- progressive acceleration and braking, by personality
+    if(c.stopA > 0 && c.v > 0){
+      c.v = Math.max(0, c.v - c.stopA*dt);            // a real stopping profile
+    } else {
+      const dv = target - c.v;
+      const rate = dv > 0 ? P.accel : P.brake;
+      c.v += Math.max(-rate, Math.min(rate, dv*2.0))*dt;
+    }
     c.v = Math.max(0, c.v);
     c.z = loopZ(c.z + c.v*c.dir*WPM*dt);
-    // lane keeping / indicating
-    if(Math.abs(c.x-c.tx)>0.02){ c.x += Math.sign(c.tx-c.x)*Math.min(Math.abs(c.tx-c.x), 0.45*dt);
-      c.indR = c.tx>c.x; c.indL = c.tx<c.x; } else { c.indL=c.indR=false; }
-    if(c.dir>0 && Math.random()<0.0009){ c.tx = (c.x===LANES.ours)?LANES.oursInner:LANES.ours; }
+    // ---- lane keeping, with indicators used before the move
+    if(Math.abs(c.x-c.tx)>0.02){
+      const wantR = c.tx > c.x;
+      if(Math.random() < P.indicate){ c.indR = wantR; c.indL = !wantR; }
+      c.x += Math.sign(c.tx-c.x)*Math.min(Math.abs(c.tx-c.x), 0.45*dt);
+    } else { c.indL=c.indR=false; }
+    // ---- separation: never let two AI cars occupy the same space
+    for(const oo of G.cars){
+      if(oo===c || oo.dir!==c.dir || Math.abs(oo.x-c.x)>0.3) continue;
+      const g = dz(c.z,oo.z)/WPM;
+      if(g > 0 && g < ((c.len||4.5)+(oo.len||4.5))*0.5 + 0.6){
+        c.z = loopZ(oo.z - (((c.len||4.5)+(oo.len||4.5))*0.5 + 0.7)*WPM);
+        c.v = Math.min(c.v, oo.v*0.85);
+      }
+    }
+    if(c.dir>0 && !c.overtaking && Math.random()<0.0004){ c.tx = LANES.ours; }
   }
 }
 function nextJunctionFrom(z, range){
@@ -1502,7 +2046,17 @@ function nextJunctionFrom(z, range){
   return best;
 }
 function updateJunctions(dt){
+  /* circulating traffic on a roundabout. Zimbabwe drives on the left, so
+     vehicles go round CLOCKWISE and you give way to whatever is already on it. */
+  (G.circles||[]).forEach(cr=>{
+    cr.t += dt;
+    // a slot of circulating traffic comes round every few seconds
+    cr.occupancy = (Math.sin(cr.t*0.55) > 0.25) ? 1 : 0;
+    const j = G.junctions.find(x=>x.kind==='circle' && Math.abs(dz(x.z, cr.z)) < SEG*2);
+    if(j) j.busy = !!cr.occupancy;
+  });
   G.junctions.forEach(j=>{
+    if(j.kind!=='circle' && j.busy && G.t - (j.busyT||0) > 1.2) j.busy = false;
     if(j.kind!=='robot'){ 
       if(j.kind==='rail'){ j.t += dt; if(j.t>rnd(16,30) && Math.abs(dz(G.pos,j.z))<70*WPM && !G.train){
           G.train = {j:j, t:0}; j.t = 0; } }
@@ -1715,7 +2269,9 @@ function updateRules(dt){
       if(d < -8) h.warned2 = false;
       if(d>-4 && d<3 && (h.state==='cross'||h.state==='freeze') && Math.abs(h.x-G.x)<0.32){
         if(spd>16){ violate('ped','ENDANGERED A PEDESTRIAN', (h.kind==='kid'?'Children step out without looking — a school zone is 40 km/h. ':'')+
-          'Give way to pedestrians on a crossing and whenever you turn at an intersection.',16,2,700,14); st.hit++; h.struck = true; }
+          'Give way to pedestrians on a crossing and whenever you turn at an intersection. A collision with a person must be reported within 24 hours.',40,6,2000,14);
+        st.hit++; h.struck = true;
+        if(spd>16 && G.mission && !G.mission.learner) G.failCrash = true; }
       }
       if(d>-6 && d<0 && h.counted && !h.scored){ h.scored = true;
         if(!h.struck && !h.warned2){ st.pedsOk++; if(spd<=25) bonus('pedok','GAVE WAY TO PEDESTRIAN','Slowed for a person on the road.',70); } }
@@ -1755,6 +2311,22 @@ function updateRules(dt){
     }
     if(d>-2 && d<48 && G.x < -0.7 && spd < 11) e.yielded = true;
   }
+
+  /* ---- one-way streets ---- */
+  if(s.oneway){
+    if(!r.owAnn || r.owAnn !== s.i0){ }
+    if(G.speed < -0.2 || G.gearSel === 'R' || (isManual() && G.mGear === -1)){
+      violate('oneway_rev','REVERSING ALONG A ONE-WAY STREET',
+        'You may not reverse against the flow of a one-way street. Find a place to turn round instead.',12,2,420,15);
+    }
+  } else if(G.x > 0.30 && spd > 6){
+    // ordinary two-way road: being on the right-hand side is the wrong side
+    r.wrongSide = (r.wrongSide||0) + dt;
+    if(r.wrongSide > 1.6){ r.wrongSide = 0;
+      violate('wrongside','DRIVING ON THE WRONG SIDE OF THE ROAD',
+        'Zimbabwe drives on the LEFT. Keep to the left-hand side except when overtaking, and return as soon as you are past.',
+        14, 2, 520, 12); }
+  } else r.wrongSide = Math.max(0, (r.wrongSide||0) - dt);
 
   /* ---- credit for sustained clean driving ---- */
   if(G.t - (r.lastViol||-99) > 18 && spd > 12){
@@ -1813,7 +2385,8 @@ function buildReport(){
     tankValue: 0
   };
   econ.tankValue = Math.max(0, (v.tank - G.fuel)) * 0 ;      // fuel already paid for at the pump
-  econ.costs = econ.fuelCost + econ.tolls + econ.fines + econ.wear + econ.cover;
+  econ.repairs = (G.damage||0)*14;
+  econ.costs = econ.fuelCost + econ.tolls + econ.fines + econ.wear + econ.cover + econ.repairs;
   return {cats:cats, driver:driver, stars:stars, econ:econ, eco:eco};
 }
 /* =====================================================================
@@ -2301,14 +2874,16 @@ const Instructor = {
     this.tt = (this.tt||0) + dt; if(this.tt < 0.7) return; this.tt = 0;
 
     // speed
-    if(spd > lim + 4 && spd < lim + 12)
-      this.say('spd','Reduce your speed. The restriction here is '+lim+' kilometres per hour.', 9, 'warn');
+    if(spd > lim + 4 && spd < lim + 20)
+      this.say('spd', Save.d.name+', you are travelling at '+Math.round(spd)+' kilometres per hour in a '+lim+
+        ' zone. At this speed you need about '+Math.round(stopDist(G.speed).t)+' metres to stop. Ease off smoothly.', 9, 'warn');
     // junction ahead
     const j = nextJunctionFrom(G.pos, 130*WPM);
     if(j){
       const g = dz(G.pos, j.z)/WPM, need = stopDist(G.speed).t;
       if(j.kind==='robot' && j.state==='red' && g < need*1.35 && g > 4 && spd > 22)
-        this.say('jred','Red robot ahead — brake now, you need about '+Math.round(need)+' metres to stop.', 6, 'warn');
+        this.say('jred','Red robot '+Math.round(g)+' metres ahead and you need about '+Math.round(need)+
+          ' metres to stop from '+Math.round(spd)+'. Begin braking now, progressively.', 6, 'warn');
       if(j.kind==='stop' && g < 55 && g > 6 && spd > 28)
         this.say('jstop','Stop sign ahead. You must come to a complete stop, then give way to both sides.', 8, 'warn');
       if(j.kind==='circle' && g < 60 && g > 6 && spd > 34)
@@ -2320,10 +2895,13 @@ const Instructor = {
     let lead = null, lg = 1e9;
     G.cars.forEach(c=>{ if(c.dir>0 && Math.abs(c.x-G.x)<0.4){ const d = dz(G.pos,c.z)/WPM; if(d>0&&d<lg){lg=d;lead=c;} }});
     if(lead && spd > 25 && lg < safeGapM()*0.85)
-      this.say('gap','You are following too closely. One car length for every fifteen kilometres per hour.', 10, 'warn');
+      this.say('gap','Your following distance is about '+Math.round(lg)+' metres at '+Math.round(spd)+
+        ' kilometres per hour. The rule is one car length for every fifteen — aim for about '+
+        Math.round(spd/15)+' lengths, roughly '+Math.round(safeGapM())+' metres. Drop back gently.', 10, 'warn');
     // signalling before moving out
     if(Math.abs(G.steer) > 0.5 && !G.indL && !G.indR && spd > 15)
-      this.say('sig','Check your mirrors and signal before you change lane.', 8, 'warn');
+      this.say('sig','You are changing your line without signalling. Mirrors, signal, then move — '+
+        (s.zone==='highway'?'a hundred metres':'fifty metres')+' of warning is what other drivers need.', 8, 'warn');
     // pedestrians and animals
     const hz = (G.hazards||[]).find(h=>{ const d = dz(G.pos,h.z)/WPM; return d>0 && d<60; });
     if(hz){
@@ -2351,6 +2929,10 @@ const Instructor = {
       if((G.clutchWear||0) > 45)
         this.say('wear','That clutch is taking punishment — less slipping, and no riding the pedal.', 40, 'warn');
     }
+    // wrong side of the road — the single most dangerous thing here
+    if(G.x > 0.28 && spd > 8 && !G.rt.overtaking)
+      this.say('wrongside','You are on the right-hand side of the road. Zimbabwe drives on the LEFT — '+
+        'come back across now, before you meet oncoming traffic.', 5, 'warn');
     // gradient advice
     const grade = s.p2 ? (s.p2.world.y - s.p1.world.y)/SEG : 0;
     if(grade < -0.055 && spd > 55)
@@ -2598,7 +3180,9 @@ const GLR = {
     if(this.tex[key]) return this.tex[key];
     const t = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, t);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // The quad's UVs already place v=0 at the top edge, so the canvas must NOT
+    // be flipped on upload — that was what turned every sign upside down.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -2751,7 +3335,156 @@ function C3s(h, f){
 /* =====================================================================
    THE 3D WORLD
    ===================================================================== */
-const HW = 3.6;                    // half carriageway width, metres
+/* =====================================================================
+   ROAD CROSS-SECTION  (Phase 1)
+   ---------------------------------------------------------------------
+   The reference board shows four distinct cross-sections, not one:
+
+     Harare avenue   dual carriageway, grass median, kerb, canopy trees
+     Harare CBD      wide single carriageway, kerb + pavement, parking
+     Rural / Hwange  narrow tar, broken centre line, NO edge lines,
+                     bare red-earth shoulder running straight off the tar
+     Mountain        narrow tar, continuous lines, gravel shoulder, guardrail
+
+   So lane width, carriageway width, median presence and shoulder material
+   are per-environment DATA. Lane offsets stay dimensionless (fractions of a
+   half-carriageway) and resolve to metres through halfWidthAt(), so every
+   subsystem keeps deriving from the one contract.
+   ===================================================================== */
+const LANE_W = 3.5;                // one running lane, metres
+const HW = 3.6;                    // legacy default half carriageway, metres
+
+const XSECT = {
+  // lanes per direction · median half-width (m) · shoulder kind · edge lines · kerb
+  avenue:  {lanes:2, half:LANE_W,      median:2.6, shoulder:'grass',  edge:true,  kerb:true,  parking:false},
+  cbd:     {lanes:2, half:LANE_W*1.05, median:0,   shoulder:'urban',  edge:false, kerb:true,  parking:true },
+  suburb:  {lanes:1, half:LANE_W*0.98, median:0,   shoulder:'grass',  edge:true,  kerb:true,  parking:true },
+  town:    {lanes:1, half:LANE_W,      median:0,   shoulder:'gravel', edge:true,  kerb:true,  parking:true },
+  peri:    {lanes:1, half:LANE_W*0.96, median:0,   shoulder:'dirt',   edge:false, kerb:false, parking:false},
+  highway: {lanes:1, half:LANE_W*1.08, median:0,   shoulder:'gravel', edge:true,  kerb:false, parking:false},
+  rural:   {lanes:1, half:LANE_W*0.92, median:0,   shoulder:'dirt',   edge:false, kerb:false, parking:false},
+  gravel:  {lanes:1, half:LANE_W*0.88, median:0,   shoulder:'dirt',   edge:false, kerb:false, parking:false},
+  mountain:{lanes:1, half:LANE_W*0.9,  median:0,   shoulder:'gravel', edge:true,  kerb:false, parking:false},
+  school:  {lanes:1, half:LANE_W,      median:0,   shoulder:'urban',  edge:true,  kerb:true,  parking:false},
+  track:   {lanes:2, half:LANE_W*1.3,  median:0,   shoulder:'kerb',   edge:false, kerb:false, parking:false}
+};
+function xsect(zone){ return XSECT[zone] || XSECT.rural; }
+
+/* =====================================================================
+   ZIMBABWE ENVIRONMENT PROFILES  (Phase 1: the data model only)
+   ---------------------------------------------------------------------
+   Read off the reference board. Nothing consumes the vegetation, rock or
+   building fields yet — Phases 4, 5 and 6 do. They are declared now so the
+   later phases have one place to read from instead of scattering constants.
+   ===================================================================== */
+const ENV_PROFILES = {
+  HARARE_CBD: {
+    zone:'cbd', soil:'#6b6257', grassDry:'#8a8a5a',
+    trees:{species:['jacaranda','palm','msasa'], density:0.35, height:[6,11], canopy:'round'},
+    rock:0, buildDens:1.5, buildStyles:['tower','office','colonial','retail','parking'],
+    heights:[2,20], palette:['#d8d2c0','#e8e4d5','#8d9aa8','#3f6f5e','#a8563f','#c9cfd8'],
+    skyline:'harare', haze:0.35, pedDens:1.6, traffic:1.5
+  },
+  HARARE_AVENUE: {
+    zone:'avenue', soil:'#5e4a3a', grassDry:'#7f8f4a',
+    trees:{species:['jacaranda','flamboyant','msasa'], density:1.6, height:[9,15], canopy:'arch'},
+    rock:0, buildDens:0.5, buildStyles:['house','wall','gate'],
+    heights:[1,2], palette:['#e8e4d5','#f2d6a8','#dfe7ef'],
+    skyline:'harare', haze:0.25, pedDens:0.9, traffic:1.1
+  },
+  HARARE_SUBURB: {
+    zone:'suburb', soil:'#6b4b34', grassDry:'#8f9a4a',
+    trees:{species:['jacaranda','msasa','marula'], density:1.0, height:[7,13], canopy:'round'},
+    rock:0.05, buildDens:1.0, buildStyles:['house','wall','gate','tuckshop'],
+    heights:[1,2], palette:['#e8e4d5','#f2d6a8','#dfe7ef','#f0cfc0'],
+    skyline:'harare', haze:0.2, pedDens:0.8, traffic:1.0
+  },
+  PERI_URBAN: {
+    zone:'peri', soil:'#8a5a34', grassDry:'#9a8a3c',
+    trees:{species:['msasa','marula','acacia'], density:0.5, height:[5,10], canopy:'round'},
+    rock:0.15, buildDens:0.9, buildStyles:['shack','tuckshop','workshop'],
+    heights:[1,1], palette:['#b9a684','#cdb99a','#d8c8a8'],
+    haze:0.35, pedDens:1.4, traffic:0.9
+  },
+  RURAL_HIGHVELD: {
+    zone:'rural', soil:'#9a5f33', grassDry:'#b8a martial'.replace(' martial','a34'),
+    trees:{species:['msasa','mopane','marula','wildfig'], density:0.45, height:[5,11], canopy:'round'},
+    rock:0.45, buildDens:0.25, buildStyles:['hut','farm','tuckshop','school','church'],
+    heights:[1,1], palette:['#cdb99a','#d8c8a8','#b9a684'],
+    haze:0.45, pedDens:0.5, traffic:0.6
+  },
+  MUTARE: {
+    zone:'town', soil:'#8a4a2e', grassDry:'#7f8f3c',
+    trees:{species:['msasa','jacaranda','pine','wildfig'], density:1.2, height:[7,14], canopy:'round'},
+    rock:0.6, buildDens:0.9, buildStyles:['shop','house','colonial'],
+    heights:[1,4], palette:['#e8e4d5','#f0b429','#dfe7ef'],
+    skyline:'mountains', haze:0.5, pedDens:1.0, traffic:1.0
+  },
+  EASTERN_HIGHLANDS: {
+    zone:'mountain', soil:'#a04a24',           // the red cuttings above Christmas Pass
+    grassDry:'#6f8a3c',
+    trees:{species:['pine','eucalyptus','msasa','wildfig'], density:1.8, height:[8,18], canopy:'tall'},
+    rock:0.9, buildDens:0.1, buildStyles:['hut','farm'],
+    heights:[1,2], palette:['#cdb99a','#dfe7ef'],
+    skyline:'mountains', haze:0.75, pedDens:0.3, traffic:0.6
+  },
+  BULAWAYO: {
+    zone:'cbd', soil:'#8a6a44', grassDry:'#a89a4a',
+    trees:{species:['acacia','msasa','palm'], density:0.4, height:[5,10], canopy:'flat'},
+    rock:0.35, buildDens:1.1, buildStyles:['colonial','retail','tower','parking'],
+    heights:[1,8], palette:['#e0d6c0','#d8c8a8','#c9b89a','#b9a684'],
+    skyline:'bulawayo', haze:0.45, pedDens:1.1, traffic:1.1
+  },
+  GWERU: {
+    zone:'town', soil:'#7a5a3a', grassDry:'#93a04a',
+    trees:{species:['msasa','jacaranda'], density:0.7, height:[6,11], canopy:'round'},
+    rock:0.2, buildDens:0.9, buildStyles:['shop','workshop','house'],
+    heights:[1,5], palette:['#dfe7ef','#e8e4d5','#c9cfd8'],
+    haze:0.4, pedDens:1.0, traffic:1.0
+  },
+  HWANGE: {
+    zone:'rural', soil:'#b5642c',              // the orange sand of the north-west
+    grassDry:'#c2a martial'.replace(' martial','a5a'),
+    trees:{species:['acacia','mopane','baobab','teak'], density:0.55, height:[4,12], canopy:'flat'},
+    rock:0.25, buildDens:0.12, buildStyles:['hut','farm'],
+    heights:[1,1], palette:['#cdb99a','#c2a a'.replace(' a','a5a')],
+    haze:0.55, pedDens:0.3, traffic:0.5
+  },
+  VICTORIA_FALLS: {
+    zone:'town', soil:'#b5642c', grassDry:'#a89a4a',
+    trees:{species:['teak','mopane','acacia','wildfig'], density:1.1, height:[6,15], canopy:'round'},
+    rock:0.2, buildDens:0.6, buildStyles:['lodge','shop','hut'],
+    heights:[1,2], palette:['#e8e4d5','#c9b89a','#8a6a44'],
+    haze:0.4, pedDens:0.8, traffic:0.7
+  }
+};
+/* which profile a route section belongs to; Phase 1 maps by zone, later
+   phases will let a route name its profile explicitly */
+const ZONE_TO_PROFILE = {
+  cbd:'HARARE_CBD', avenue:'HARARE_AVENUE', suburb:'HARARE_SUBURB', school:'HARARE_SUBURB',
+  peri:'PERI_URBAN', town:'GWERU', highway:'RURAL_HIGHVELD', rural:'RURAL_HIGHVELD',
+  gravel:'RURAL_HIGHVELD', mountain:'EASTERN_HIGHLANDS', track:'HARARE_CBD'
+};
+function envProfile(pos){
+  const s = segAt(pos === undefined ? G.pos : pos);
+  if(!s) return ENV_PROFILES.HARARE_SUBURB;
+  const route = G.route || {};
+  const named = route.profiles && route.profiles[s.zone];
+  return ENV_PROFILES[named] || ENV_PROFILES[ZONE_TO_PROFILE[s.zone]] || ENV_PROFILES.RURAL_HIGHVELD;
+}
+/* metres from the centreline to the outer edge of the tar on ONE side */
+function halfWidthAt(pos){
+  const s = segAt(pos);
+  return s ? halfWidthOf(s) : HW;
+}
+function halfWidthOf(seg){
+  const x = xsect(seg.zone);
+  return x.half*x.lanes + x.median;
+}
+function halfWidthSeg(i){
+  const s = G.segs[i];
+  return s ? halfWidthOf(s) : HW;
+}
 const SEGM = SEG / WPM;            // segment length in metres (≈ 6,67 m)
 const CURVE_K = 0.0062;            // segment curve value → radians of yaw
 
@@ -2785,20 +3518,31 @@ function pathAt(pos){
 }
 /* world position of a point on the road: distance along + lateral offset in lane units */
 function roadPoint(pos, lane, lift){
-  const p = pathAt(pos);
-  const nx = Math.cos(p.h), nz = -Math.sin(p.h);      // road normal (points right)
-  return {x:p.x + nx*lane*HW, y:p.y + (lift||0), z:p.z + nz*lane*HW, h:p.h};
+  const p = pathAt(pos), r = roadRight(p.h), w = halfWidthAt(pos);
+  return {x:p.x + r.x*lane*w, y:p.y + (lift||0), z:p.z + r.z*lane*w, h:p.h, hw:w};
 }
 
 /* --------------------------------------------------------- quality ---- */
 const QUALITY = {
-  LOW:    {res:0.62, dist:150, veg:0.35, shadows:false, weather:false, traffic:0.55, detail:0, blur:false},
-  MEDIUM: {res:0.8,  dist:230, veg:0.6,  shadows:true,  weather:true,  traffic:0.8,  detail:1, blur:false},
-  HIGH:   {res:1.0,  dist:330, veg:1.0,  shadows:true,  weather:true,  traffic:1.0,  detail:2, blur:true},
-  ULTRA:  {res:1.0,  dist:460, veg:1.3,  shadows:true,  weather:true,  traffic:1.2,  detail:3, blur:true}
+  LOW:    {res:0.55, dist:120, veg:0.3, shadows:0, weather:0, traffic:0.5, detail:0, blur:false, bloom:false, aa:false, reflect:0, tex:0, build:0},
+  MEDIUM: {res:0.75, dist:230, veg:0.6, shadows:1, weather:1, traffic:0.8, detail:1, blur:false, bloom:false, aa:true,  reflect:1, tex:1, build:1},
+  HIGH:   {res:1.0,  dist:360, veg:1.0, shadows:2, weather:2, traffic:1.0, detail:2, blur:true,  bloom:true,  aa:true,  reflect:2, tex:2, build:2},
+  ULTRA:  {res:1.0,  dist:600, veg:1.4, shadows:2, weather:2, traffic:1.5, detail:3, blur:true,  bloom:true,  aa:true,  reflect:2, tex:3, build:3}
 };
 function qName(){ return Save.d.quality || 'MEDIUM'; }
-function Q(){ return QUALITY[qName()] || QUALITY.MEDIUM; }
+/* the preset provides defaults; anything the player sets explicitly overrides it */
+const GFX_KEYS = ['res','dist','veg','shadows','weather','traffic','detail','blur','bloom','aa','reflect','tex','build'];
+function Q(){
+  const base = QUALITY[qName()] || QUALITY.MEDIUM;
+  const ov = Save.d.gfx || {};
+  const out = Object.assign({bloom:base.detail>=2, aa:base.detail>=1, reflect:base.detail>=2?2:base.detail>=1?1:0,
+                             tex:base.detail, build:base.detail}, base);
+  GFX_KEYS.forEach(k=>{ if(ov[k] !== undefined && ov[k] !== null) out[k] = ov[k]; });
+  return out;
+}
+function setGfx(k, v){ Save.d.gfx = Save.d.gfx || {}; Save.d.gfx[k] = v; Save.write(); adaptive = 1;
+  if(typeof resize === 'function') resize(); }
+function resetGfx(){ Save.d.gfx = {}; Save.write(); adaptive = 1; if(typeof resize === 'function') resize(); }
 function use3D(){ return Save.d.gfx3d !== false && GLR.ok; }
 
 /* ------------------------------------------------------- environment -- */
@@ -2829,9 +3573,15 @@ function envColours(){
 }
 
 /* --------------------------------------------------------- cameras ---- */
+/* Zimbabwe drives right-hand-drive vehicles, so the driver's eye sits to the
+   RIGHT of the vehicle centreline — about 0.36 m for a Fit-sized car. `eye` is
+   metres to the right of centre, resolved through the road-right vector so it
+   stays correct through every bend. */
+const DRIVER_OFFSET = 0.36;
 const CAMS = [
-  {n:'COCKPIT',        h:1.16, back:0.05, fov:62, look:9,  cockpit:true},
-  {n:'DASHBOARD',      h:1.24, back:-0.35, fov:56, look:12, cockpit:true},
+  {n:'COCKPIT',        h:1.17, back:0.05, fov:62, look:9,  cockpit:true, eye:DRIVER_OFFSET},
+  {n:'PASSENGER',      h:1.17, back:0.05, fov:62, look:9,  cockpit:true, eye:-DRIVER_OFFSET},
+  {n:'DASHBOARD',      h:1.24, back:-0.35, fov:56, look:12, cockpit:true, eye:DRIVER_OFFSET*0.7},
   {n:'BONNET',         h:1.05, back:-1.7, fov:64, look:14},
   {n:'BUMPER',         h:0.42, back:-2.3, fov:70, look:16},
   {n:'THIRD — NEAR',   h:1.9,  back:6.0,  fov:60, look:14, car:true},
@@ -2843,27 +3593,39 @@ const camState = {x:0, y:0, z:0, lx:0, ly:0, lz:0, lag:0, roll:0, init:false};
 function cameraFor(dt){
   const c = CAMS[G.cam % CAMS.length];
   const p = roadPoint(G.pos, G.x, 0);
+  p.h = (G.heading !== undefined) ? G.heading : p.h;      // camera follows the CAR, not the road
   const carY = p.y + 0.1;
-  const fwd = {x:Math.sin(p.h), z:Math.cos(p.h)};
+  const fwd = roadFwd(p.h);
   // the third-person camera lags behind acceleration and cornering instead of
   // being welded to the car
   const accel = (G.speed - (camState.lastV||0))/Math.max(dt,0.001);
   camState.lastV = G.speed;
   camState.lag += ((Math.max(-6,Math.min(6,accel))*0.09) - camState.lag) * Math.min(1, dt*2.2);
-  camState.roll += ((-G.steer*0.045) - camState.roll) * Math.min(1, dt*3);
+  camState.roll += (((G.roll||0)*0.8 - G.steer*0.02) - camState.roll) * Math.min(1, dt*3);
   let back = c.back + (c.car ? camState.lag : 0);
   if(c.cine) back += Math.sin(G.t*0.13)*3.2;
   const side = c.cine ? Math.sin(G.t*0.09)*2.6 : 0;
-  const nx = Math.cos(p.h), nz = -Math.sin(p.h);
-  const tx = p.x - fwd.x*back + nx*side, tz = p.z - fwd.z*back + nz*side;
+  const rr = roadRight(p.h);
+  // the driver sits to the right in a right-hand-drive vehicle
+  const eyeOff = c.eye || 0;
+  const tx = p.x - fwd.x*back + rr.x*(side + eyeOff);
+  const tz = p.z - fwd.z*back + rr.z*(side + eyeOff);
   const ty = carY + c.h + (c.cine ? 1.2 + Math.sin(G.t*0.11) : 0);
   if(!camState.init){ camState.x = tx; camState.y = ty; camState.z = tz; camState.init = true; }
   const k = c.car ? Math.min(1, dt*6) : 1;
   camState.x += (tx-camState.x)*k; camState.y += (ty-camState.y)*k; camState.z += (tz-camState.z)*k;
   // aim well down the road so bends read early
   const ahead = roadPoint(G.pos + c.look*WPM, G.x*0.55, 0);
-  return {cam:c, eye:[camState.x, camState.y, camState.z],
-          at:[ahead.x, ahead.y + 0.9, ahead.z], p:p};
+  // impact and surface shake
+  camState.shake = Math.max(0, (camState.shake||0) - dt*2.2);
+  if(G.shake > 0){ camState.shake = Math.max(camState.shake, G.shake); G.shake = Math.max(0, G.shake - dt*2.2); }
+  const sh = camState.shake, jitter = sh>0.001 ? sh*0.55 : 0;
+  const jx = jitter ? (Math.sin(G.t*57.3)*jitter) : 0;
+  const jy = jitter ? (Math.sin(G.t*41.7)*jitter) : 0;
+  // the camera pitches with the body under acceleration and braking
+  const bodyPitch = (G.pitch||0)*(c.car ? 4.5 : 2.2);
+  return {cam:c, eye:[camState.x+jx, camState.y+jy, camState.z],
+          at:[ahead.x, ahead.y + 0.9 - bodyPitch*3 + jy, ahead.z], p:p};
 }
 
 /* ------------------------------------------------------- road ribbon -- */
@@ -2873,102 +3635,618 @@ function segColour(s, dark){
 }
 function edgePoints(i, lane){
   const s = G.segs[i]; if(!s || !s.w3) return null;
-  const p = s.w3, nx = Math.cos(p.h), nz = -Math.sin(p.h);
-  return {x:p.x + nx*lane*HW, y:p.y, z:p.z + nz*lane*HW};
+  const p = s.w3, r = roadRight(p.h), w = halfWidthOf(s);
+  return {x:p.x + r.x*lane*w, y:p.y, z:p.z + r.z*lane*w, hw:w};
 }
+/* =====================================================================
+   PHASE 2 — ROAD MESH, SHOULDERS AND DRAINAGE
+   ---------------------------------------------------------------------
+   The road is no longer a ribbon on a green plane. Each cross-section is
+   built outward from the centreline as real strips:
+
+     median | tar | edge line | shoulder | drainage | verge | terrain
+
+   The shoulder material and the verge colour come from the environment
+   profile, so a Hwange road runs off into orange sand while a Harare
+   avenue runs into mown grass, and the Christmas Pass cutting shows red
+   earth. Surface wear — patches, cracks, tyre polish, faded paint — is
+   deterministic per segment so it does not shimmer between frames.
+   ===================================================================== */
+const SHOULDER_MAT = {
+  grass:  {col:'#4a7a3a', w:0.30, spec:0.02, drain:true },
+  gravel: {col:'#9a8a6a', w:0.34, spec:0.05, drain:true },
+  dirt:   {col:null,      w:0.38, spec:0.03, drain:false},   // null = profile soil
+  urban:  {col:'#9aa1b0', w:0.22, spec:0.06, drain:false},
+  kerb:   {col:'#8d94a6', w:0.16, spec:0.08, drain:false}
+};
+/* deterministic per-segment noise, so wear is stable frame to frame */
+function segHash(i, salt){
+  let h = (i*2654435761 + (salt||0)*40503) >>> 0;
+  h ^= h >>> 13; h = (h*1274126177) >>> 0; h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function profileFor(seg){
+  const named = (G.route && G.route.profiles && G.route.profiles[seg.zone]);
+  return ENV_PROFILES[named] || ENV_PROFILES[ZONE_TO_PROFILE[seg.zone]] || ENV_PROFILES.RURAL_HIGHVELD;
+}
+
 function drawRoad(first, count){
-  const g = GLR, q = Q();
-  // ---- verge either side of the road, batched into two draws
-  ['dark','light'].forEach(shade=>{
-    g.beginSoup(); let col = null;
-    for(let k=0;k<count;k++){
-      const i = (first+k) % G.segs.length, j = (i+1) % G.segs.length;
-      if(j === 0) continue;
-      const s = G.segs[i];
-      if((shade==='dark') !== !!s.dark) continue;
-      col = col || (shade==='dark' ? ZONE[s.zone].grass : ZONE[s.zone].grass2);
-      const a = edgePoints(i,-6), b = edgePoints(j,-6), c = edgePoints(j,6), d = edgePoints(i,6);
-      if(!a||!b||!c||!d) continue;
-      g.quadSoup([a.x,a.y-0.05,a.z],[d.x,d.y-0.05,d.z],[c.x,c.y-0.05,c.z],[b.x,b.y-0.05,b.z],[0,1,0]);
-    }
-    g.flushSoup(C3(col || '#2f8f4a'), {spec:0.01});
-  });
-  // ---- the tar, in one soup per colour run
+  const g = GLR, q = Q(), env = envColours(), night = !env.day;
   const wet = G.wx==='rain' ? 1 : G.wx==='mist' ? 0.4 : 0;
-  ['dark','light'].forEach(shade=>{
-    g.beginSoup();
-    let col = null;
-    for(let k=0;k<count;k++){
-      const i = (first+k) % G.segs.length, j = (i+1) % G.segs.length;
-      if(j === 0) continue;
-      const s = G.segs[i];
-      if((shade==='dark') !== !!s.dark) continue;
-      const a = edgePoints(i,-1.08), b = edgePoints(j,-1.08), c = edgePoints(j,1.08), d = edgePoints(i,1.08);
-      if(!a||!b||!c||!d) continue;
-      col = col || segColour(s, shade==='dark');
-      g.quadSoup([a.x,a.y,a.z],[d.x,d.y,d.z],[c.x,c.y,c.z],[b.x,b.y,b.z],[0,1,0]);
-    }
-    g.flushSoup(C3(col || '#4a4f5e'), {spec: 0.05 + wet*0.5});
-  });
-  // ---- shoulders / rumble
-  g.beginSoup();
-  for(let k=0;k<count;k++){
-    const i = (first+k) % G.segs.length, j = (i+1) % G.segs.length;
-    if(j===0) continue;
-    const s = G.segs[i]; if(s.zone==='track') continue;
-    [[-1.35,-1.08],[1.08,1.35]].forEach(r=>{
-      const a = edgePoints(i,r[0]), b = edgePoints(j,r[0]), c = edgePoints(j,r[1]), d = edgePoints(i,r[1]);
-      if(a&&b&&c&&d) g.quadSoup([a.x,a.y-0.02,a.z],[d.x,d.y-0.02,d.z],[c.x,c.y-0.02,c.z],[b.x,b.y-0.02,b.z],[0,1,0]);
-    });
-  }
-  g.flushSoup(C3('#6a6f7e'), {spec:0.02});
-
-  // ---- markings, all in white, lifted a hair off the tar
+  const n = G.segs.length;
   const LY = 0.012;
-  g.beginSoup();
-  for(let k=0;k<count;k++){
-    const i = (first+k) % G.segs.length, j = (i+1) % G.segs.length;
-    if(j===0) continue;
-    const s = G.segs[i];
-    const strip = (l1,l2)=>{
-      const a = edgePoints(i,l1), b = edgePoints(j,l1), c = edgePoints(j,l2), d = edgePoints(i,l2);
-      if(a&&b&&c&&d) g.quadSoup([a.x,a.y+LY,a.z],[d.x,d.y+LY,d.z],[c.x,c.y+LY,c.z],[b.x,b.y+LY,b.z],[0,1,0]);
-    };
-    // centre line
-    if(s.line==='broken'){ if(Math.floor(i/3)%2===0) strip(-0.035,0.035); }
-    else if(s.line==='continuous') strip(-0.035,0.035);
-    else if(s.line==='double'){ strip(-0.10,-0.03); strip(0.03,0.10); }
-    // CBD lane dividers
-    if(ZONE[s.zone].build==='tower' && Math.floor(i/3)%2===0){ strip(-0.55,-0.48); strip(0.48,0.55); }
-    // stop line
-    if(s.stopline){
-      const a = edgePoints(i,-1.0), d = edgePoints(i,-0.02);
-      const b = edgePoints((i+1)%G.segs.length,-1.0), c = edgePoints((i+1)%G.segs.length,-0.02);
-      if(a&&b&&c&&d) g.quadSoup([a.x,a.y+LY,a.z],[d.x,d.y+LY,d.z],[c.x,c.y+LY,c.z],[b.x,b.y+LY,b.z],[0,1,0]);
+  /* a strip between two lateral offsets, at a height above the tar */
+  const strip = (i, j, l1, l2, lift, out) => {
+    const a1 = edgePoints(i,l1), b1 = edgePoints(j,l1);
+    const c1 = edgePoints(j,l2), d1 = edgePoints(i,l2);
+    if(!a1||!b1||!c1||!d1) return;
+    out.quadSoup([a1.x,a1.y+lift,a1.z],[d1.x,d1.y+lift,d1.z],
+                 [c1.x,c1.y+lift,c1.z],[b1.x,b1.y+lift,b1.z],[0,1,0]);
+  };
+  /* group segments by a key, then emit one soup per group — keeps the draw
+     count flat however many different environments are in view */
+  const byKey = (keyFn, drawFn) => {
+    const groups = {};
+    for(let k=0;k<count;k++){
+      const i = (first+k) % n, j = (i+1) % n;
+      if(j === 0) continue;
+      const s = G.segs[i]; if(!s || !s.w3) continue;
+      const key = keyFn(s, i);
+      if(key === null || key === undefined) continue;
+      (groups[key] = groups[key] || []).push([i,j,s]);
     }
-    // zebra
-    if(s.zebra){
-      for(let t=-4;t<=4;t++){ if(t%2===0) continue; strip(t*0.11-0.045, t*0.11+0.045); }
-    }
-    // painted direction arrow
-    if(s.arrow && Math.floor(i/6)%2===0) strip(-0.56,-0.44);
-  }
-  g.flushSoup(C3('#f7f9ff'), {spec:0.12, emissive: envColours().day ? null : new Float32Array([0.1,0.1,0.12])});
+    Object.keys(groups).forEach(key=> drawFn(key, groups[key]));
+  };
 
-  // ---- yellow edge lines
+  /* ---------- 1. the verge: terrain colour, from the profile ---------- */
+  byKey((s,i)=>{
+    const p = profileFor(s);
+    // wet season is green, dry season shows the grass going over
+    const dry = (G.wx === 'sunny' && (G.clock/3600) > 8) ? 1 : 0;
+    return (s.dark ? ZONE[s.zone].grass : ZONE[s.zone].grass2) + '|' + (dry?p.grassDry:'');
+  }, (key, list)=>{
+    const parts = key.split('|');
+    const base = parts[0], dryCol = parts[1];
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const hw = halfWidthOf(s), reach = 9 / hw;         // 9 m of verge either side
+      strip(i,j,-reach,reach,-0.05,g);
+    });
+    // blend a little of the dry-grass colour in, so the season reads
+    const c = dryCol ? mixHex(base, dryCol, 0.45) : base;
+    g.flushSoup(C3(c), {spec:0.01});
+  });
+
+  /* ---------- 2. bare soil immediately beside the tar ---------- */
+  byKey((s,i)=>{
+    const x = xsect(s.zone);
+    if(x.shoulder === 'urban' || x.kerb) return null;    // a kerbed street has no bare soil
+    return profileFor(s).soil;
+  }, (col, list)=>{
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const hw = halfWidthOf(s), x = xsect(s.zone);
+      const mat = SHOULDER_MAT[x.shoulder] || SHOULDER_MAT.dirt;
+      const inner = ROAD_EDGE + mat.w, outer = inner + (2.6/hw);
+      strip(i,j,-outer,-inner,-0.03,g);
+      strip(i,j, inner, outer,-0.03,g);
+    });
+    g.flushSoup(C3(col), {spec:0.02});
+  });
+
+  /* ---------- 3. the shoulder itself ---------- */
+  byKey((s,i)=>{
+    const x = xsect(s.zone), mat = SHOULDER_MAT[x.shoulder] || SHOULDER_MAT.dirt;
+    return mat.col || profileFor(s).soil;
+  }, (col, list)=>{
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const x = xsect(s.zone), mat = SHOULDER_MAT[x.shoulder] || SHOULDER_MAT.dirt;
+      const hw = halfWidthOf(s), w = mat.w;
+      strip(i,j,-(ROAD_EDGE+w),-ROAD_EDGE,-0.02,g);
+      strip(i,j, ROAD_EDGE, ROAD_EDGE+w,-0.02,g);
+    });
+    g.flushSoup(C3(col), {spec:0.03});
+  });
+
+  /* ---------- 4. drainage channel, where the shoulder calls for one ---------- */
+  g.beginSoup();
+  let anyDrain = false;
+  for(let k=0;k<count;k++){
+    const i = (first+k)%n, j = (i+1)%n;
+    if(j===0) continue;
+    const s = G.segs[i]; if(!s || !s.w3) continue;
+    const x = xsect(s.zone), mat = SHOULDER_MAT[x.shoulder] || SHOULDER_MAT.dirt;
+    if(!mat.drain) continue;
+    anyDrain = true;
+    const hw = halfWidthOf(s), a0 = ROAD_EDGE + mat.w, a1 = a0 + (1.5/hw);
+    // a shallow V, cut below the shoulder so water reads as running off
+    strip(i,j,-a1,-a0,-0.30,g);
+    strip(i,j, a0, a1,-0.30,g);
+  }
+  if(anyDrain) g.flushSoup(C3(wet ? '#3a4a3a' : '#5a5a44'), {spec: 0.04 + wet*0.55});
+
+  /* ---------- 5. the tar ---------- */
+  byKey((s,i)=>{
+    const z = ZONE[s.zone];
+    return s.dark ? z.road : z.road2;
+  }, (col, list)=>{
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const x = xsect(s.zone);
+      if(x.median > 0){
+        const hw = halfWidthOf(s), m = x.median/hw;
+        strip(i,j,-ROAD_EDGE,-m,0,g);      // two separate carriageways
+        strip(i,j, m, ROAD_EDGE,0,g);
+      } else {
+        strip(i,j,-ROAD_EDGE,ROAD_EDGE,0,g);
+      }
+    });
+    g.flushSoup(C3(col), {spec: 0.05 + wet*0.5});
+  });
+
+  /* ---------- 6. the median, on a dual carriageway ---------- */
+  g.beginSoup();
+  let anyMedian = false;
+  for(let k=0;k<count;k++){
+    const i = (first+k)%n, j = (i+1)%n;
+    if(j===0) continue;
+    const s = G.segs[i]; if(!s || !s.w3) continue;
+    const x = xsect(s.zone);
+    if(!(x.median > 0)) continue;
+    anyMedian = true;
+    const hw = halfWidthOf(s), m = x.median/hw;
+    strip(i,j,-m,m,0.14,g);
+  }
+  if(anyMedian) g.flushSoup(C3('#3f7a3c'), {spec:0.02});
+
+  /* ---------- 7. surface wear: patches, tyre polish, cracks ---------- */
+  if(q.detail >= 1){
+    // darker asphalt patches where the road has been repaired
+    g.beginSoup();
+    for(let k=0;k<count;k++){
+      const i = (first+k)%n, j = (i+1)%n;
+      if(j===0) continue;
+      const s = G.segs[i]; if(!s || !s.w3) continue;
+      const r = segHash(i, 7);
+      if(r > 0.14) continue;
+      const c = (segHash(i,8) - 0.5)*1.2;
+      const w = 0.16 + segHash(i,9)*0.34;
+      strip(i,j, c-w, c+w, 0.004, g);
+    }
+    g.flushSoup(C3('#33373f'), {spec:0.03});
+    // tyre polish: two burnished tracks in each running lane
+    g.beginSoup();
+    for(let k=0;k<count;k++){
+      const i = (first+k)%n, j = (i+1)%n;
+      if(j===0) continue;
+      const s = G.segs[i]; if(!s || !s.w3) continue;
+      if(s.zone==='gravel') continue;
+      [[-0.72,-0.60],[-0.42,-0.30],[0.30,0.42],[0.60,0.72]].forEach(t=> strip(i,j,t[0],t[1],0.003,g));
+    }
+    g.flushSoup(C3('#565b68'), {spec: 0.09 + wet*0.35, alpha:0.55});
+  }
+  if(q.detail >= 2){
+    // hairline cracking on older surfaces
+    g.beginSoup();
+    for(let k=0;k<count;k++){
+      const i = (first+k)%n, j = (i+1)%n;
+      if(j===0) continue;
+      const s = G.segs[i]; if(!s || !s.w3) continue;
+      if(segHash(i,11) > 0.3) continue;
+      const c = (segHash(i,12) - 0.5)*1.7;
+      strip(i,j, c-0.012, c+0.012, 0.005, g);
+    }
+    g.flushSoup(C3('#23262c'), {spec:0.01, alpha:0.7});
+  }
+  /* standing water in the wet, pooling at the road edge as it does in the photos */
+  if(wet > 0.6 && q.weather >= 1){
+    g.beginSoup();
+    for(let k=0;k<count;k++){
+      const i = (first+k)%n, j = (i+1)%n;
+      if(j===0) continue;
+      const s = G.segs[i]; if(!s || !s.w3) continue;
+      if(segHash(i,15) > 0.22) continue;
+      const side = segHash(i,16) < 0.5 ? -1 : 1;
+      strip(i,j, side*0.78, side*0.99, 0.006, g);
+    }
+    g.flushSoup(C3('#6d8296'), {spec:0.9, alpha:0.55});
+  }
+
+  /* ---------- 8. kerb and footway ---------- */
+  byKey((s,i)=> xsect(s.zone).kerb ? '1' : null, (key, list)=>{
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const hw = halfWidthOf(s), a0 = ROAD_EDGE + 0.06, a1 = a0 + (2.2/hw);
+      strip(i,j,-a1,-a0,0.15,g); strip(i,j, a0, a1,0.15,g);
+    });
+    g.flushSoup(C3('#9aa1b0'), {spec:0.04});
+    // the kerb face
+    g.beginSoup();
+    list.forEach(([i,j,s])=>{
+      const a0 = ROAD_EDGE + 0.06;
+      [-1,1].forEach(sd=>{
+        const p1 = edgePoints(i, sd*a0), p2 = edgePoints(j, sd*a0);
+        if(!p1||!p2) return;
+        const rr = roadRight(s.w3.h);
+        g.quadSoup([p1.x,p1.y,p1.z],[p1.x,p1.y+0.15,p1.z],
+                   [p2.x,p2.y+0.15,p2.z],[p2.x,p2.y,p2.z],[sd*rr.x,0,sd*rr.z]);
+      });
+    });
+    g.flushSoup(C3('#c3c8d2'), {spec:0.06});
+  });
+
+  /* ---------- 9. white markings ---------- */
   g.beginSoup();
   for(let k=0;k<count;k++){
-    const i = (first+k) % G.segs.length, j = (i+1) % G.segs.length;
+    const i = (first+k)%n, j = (i+1)%n;
     if(j===0) continue;
+    const s = G.segs[i]; if(!s || !s.w3) continue;
+    const x = xsect(s.zone);
+    const faded = segHash(i,21) < 0.18;                 // some paint has worn away
+    if(faded && q.detail >= 1) continue;
+    const S = (l1,l2)=> strip(i,j,l1,l2,LY,g);
+    if(x.median > 0){
+      // a dual carriageway has lane lines, not a centre line
+      const hw = halfWidthOf(s), m = x.median/hw;
+      const mid = (m + ROAD_EDGE)/2;
+      if(Math.floor(i/3)%2===0){ S(-mid-0.035,-mid+0.035); S(mid-0.035, mid+0.035); }
+    } else {
+      if(s.line==='broken'){ if(Math.floor(i/3)%2===0) S(-0.035,0.035); }
+      else if(s.line==='continuous') S(-0.035,0.035);
+      else if(s.line==='double'){ S(-0.10,-0.03); S(0.03,0.10); }
+      if(x.lanes>1 && Math.floor(i/3)%2===0){ S(-0.55,-0.48); S(0.48,0.55); }
+    }
+    if(s.stopline){
+      const a1 = edgePoints(i,-ROAD_EDGE), d1 = edgePoints(i,-0.02);
+      const b1 = edgePoints(j,-ROAD_EDGE), c1 = edgePoints(j,-0.02);
+      if(a1&&b1&&c1&&d1) g.quadSoup([a1.x,a1.y+LY,a1.z],[d1.x,d1.y+LY,d1.z],
+                                    [c1.x,c1.y+LY,c1.z],[b1.x,b1.y+LY,b1.z],[0,1,0]);
+    }
+    if(s.zebra) for(let t=-8;t<=8;t++){ if(t%2===0) continue; S(t*0.11-0.045, t*0.11+0.045); }
+    if(s.arrow && Math.floor(i/6)%2===0) S(-0.56,-0.44);
+    if(s.giveline) for(let t=-9;t<=-1;t++){ if(t%2===0) continue; S(t*0.11-0.04, t*0.11+0.04); }
+    if(s.oneway && Math.floor(i/3)%2===0) S(-0.03,0.03);
+    // parking bays where the cross-section allows kerbside parking
+    if(x.parking && q.detail >= 1 && Math.floor(i/9)%3===0){
+      S(-ROAD_EDGE+0.02, -ROAD_EDGE+0.05); S(ROAD_EDGE-0.05, ROAD_EDGE-0.02);
+    }
+  }
+  g.flushSoup(C3('#f7f9ff'), {spec:0.12,
+    emissive: night ? new Float32Array([0.1,0.1,0.12]) : null});
+
+  /* ---------- 10. yellow edge lines, only where the cross-section has them ---------- */
+  g.beginSoup();
+  let anyEdge = false;
+  for(let k=0;k<count;k++){
+    const i = (first+k)%n, j = (i+1)%n;
+    if(j===0) continue;
+    const s = G.segs[i]; if(!s || !s.w3) continue;
+    if(!xsect(s.zone).edge) continue;                   // a rural strip has none
+    if(segHash(i,23) < 0.12) continue;                  // and it is not always intact
+    anyEdge = true;
+    strip(i,j,-ROAD_EDGE+0.01,-ROAD_EDGE+0.07,LY,g);
+    strip(i,j, ROAD_EDGE-0.07, ROAD_EDGE-0.01,LY,g);
+  }
+  if(anyEdge) g.flushSoup(C3('#f2c40f'), {spec:0.1});
+
+  /* ---------- 11. guardrail ---------- */
+  for(let k=0;k<count;k++){
+    const i = (first+k)%n;
     const s = G.segs[i];
-    if(s.zone==='gravel' || s.zone==='track') continue;
-    if(!(s.zone==='mountain' || Math.floor(i/2)%2===0 || s.line==='double')) continue;
-    [[-0.99,-0.93],[0.93,0.99]].forEach(r=>{
-      const a = edgePoints(i,r[0]), b = edgePoints(j,r[0]), c = edgePoints(j,r[1]), d = edgePoints(i,r[1]);
-      if(a&&b&&c&&d) g.quadSoup([a.x,a.y+LY,a.z],[d.x,d.y+LY,d.z],[c.x,c.y+LY,c.z],[b.x,b.y+LY,b.z],[0,1,0]);
+    if(!s || !s.rail || !s.w3) continue;
+    const p = edgePoints(i, s.rail*(ROAD_EDGE+0.16));
+    if(!p) continue;
+    boxAt(p.x, p.y, p.z, 0.12, 0.72, 0.12, s.w3.h, C3('#8d94a6'), {spec:0.3});
+    boxAt(p.x, p.y+0.5, p.z, 0.06, 0.28, SEGM*1.05, s.w3.h, C3('#c3c8d2'),
+      {spec:0.45, emissive: night ? new Float32Array([0.08,0.08,0.09]) : null});
+  }
+  /* ---------- 12. roundabout island ---------- */
+  for(let k=0;k<count;k++){
+    const i = (first+k)%n;
+    const s = G.segs[i];
+    if(!s || !s.island || !s.w3) continue;
+    const c = edgePoints(i, 0);
+    if(!c) continue;
+    GLR.draw('cyl', M4.trs(c.x, c.y, c.z, 0, 7.0, 0.28, 7.0), C3('#9aa1b0'), {spec:0.05});
+    GLR.draw('cyl', M4.trs(c.x, c.y+0.28, c.z, 0, 6.2, 0.22, 6.2), C3('#4f8f52'), {spec:0.03});
+    for(let a2=0; a2<8; a2++){
+      const ang = a2/8*Math.PI*2;
+      const mx = c.x + Math.cos(ang)*3.3, mz = c.z + Math.sin(ang)*3.3;
+      boxAt(mx, c.y+0.5, mz, 0.5, 0.55, 0.09, ang, C3('#0b1020'), {spec:0.1});
+      boxAt(mx, c.y+0.62, mz, 0.42, 0.2, 0.11, ang, C3('#F5B324'),
+        {emissive:new Float32Array([0.16,0.11,0.0])});
+    }
+    drawTree3D(c.x, c.y+0.5, c.z, 5.2, 'msasa');
+  }
+}
+function mixHex(a, b, t){
+  const A = C3(a), B = C3(b);
+  const to = v=> ('0'+Math.round(Math.max(0,Math.min(255,v*255))).toString(16)).slice(-2);
+  return '#'+to(A[0]+(B[0]-A[0])*t)+to(A[1]+(B[1]-A[1])*t)+to(A[2]+(B[2]-A[2])*t);
+}
+
+
+/* =====================================================================
+   PHASE 3 — TERRAIN
+   ---------------------------------------------------------------------
+   The road must sit IN the ground, not float on a green plane. The world
+   here is a corridor, so terrain is generated in road space: for a segment
+   i and a lateral offset u (in metres from the centreline), the height is
+
+        y(i,u) = roadY(i) + relief(i,u)
+
+   relief() is zero at the carriageway edge and grows outward, so the road
+   always meets the ground exactly. Its shape comes from the environment
+   profile: flat in Harare, gently rolling on the highveld, and a cut-and-
+   fill bench through the Eastern Highlands — hillside rising on one side,
+   ground falling away on the other, which is what Christmas Pass actually
+   looks like.
+
+   Terrain is built as CHUNKS of segments, cached, and re-tessellated when
+   their level of detail changes. Generation is deterministic from segHash,
+   so a chunk looks the same every time it is rebuilt.
+   ===================================================================== */
+
+const TERRAIN = {
+  chunkSegs: 16,          // segments per chunk
+  reach: 120,             // metres either side of the centreline
+  lodRes: [               // [lateral samples, segment step] per LOD level
+    [14, 1],              // 0 · near
+    [9,  2],              // 1 · mid
+    [5,  4],              // 2 · far
+    [3,  8]               // 3 · distant
+  ],
+  lodDist: [70, 170, 320],
+  chunks: null,
+  stats: {built:0, visible:0, total:0}
+};
+
+/* relief profile per environment: how the ground behaves away from the road */
+const RELIEF = {
+  HARARE_CBD:        {amp:0.6,  roll:0.10, cut:0,    fall:0,    rough:0.25},
+  HARARE_AVENUE:     {amp:0.5,  roll:0.08, cut:0,    fall:0,    rough:0.20},
+  HARARE_SUBURB:     {amp:1.2,  roll:0.14, cut:0,    fall:0,    rough:0.35},
+  PERI_URBAN:        {amp:2.0,  roll:0.18, cut:0.1,  fall:0.1,  rough:0.5 },
+  RURAL_HIGHVELD:    {amp:4.5,  roll:0.22, cut:0.15, fall:0.2,  rough:0.7 },
+  MUTARE:            {amp:7.0,  roll:0.30, cut:0.5,  fall:0.6,  rough:0.8 },
+  EASTERN_HIGHLANDS: {amp:14.0, roll:0.42, cut:1.0,  fall:1.0,  rough:1.0 },
+  BULAWAYO:          {amp:1.4,  roll:0.12, cut:0,    fall:0,    rough:0.4 },
+  GWERU:             {amp:1.6,  roll:0.14, cut:0.05, fall:0.05, rough:0.4 },
+  HWANGE:            {amp:2.2,  roll:0.16, cut:0.05, fall:0.05, rough:0.45},
+  VICTORIA_FALLS:    {amp:2.0,  roll:0.15, cut:0.05, fall:0.05, rough:0.4 }
+};
+function reliefFor(seg){
+  const p = profileFor(seg);
+  for(const k in ENV_PROFILES) if(ENV_PROFILES[k] === p) return RELIEF[k] || RELIEF.RURAL_HIGHVELD;
+  return RELIEF.RURAL_HIGHVELD;
+}
+
+/* smooth value noise along the road, deterministic and cheap */
+function tNoise(i, u, salt){
+  const fi = Math.floor(i), f = i - fi;
+  const a = segHash(fi, salt) , b = segHash(fi+1, salt);
+  const s = f*f*(3-2*f);
+  return a + (b-a)*s;
+}
+
+/* ---------------------------------------------------------------------
+   getTerrainHeight(pos, lateralMetres)
+   Height of the ground at a point, in the same world units as the road.
+   Returns the road surface itself inside the carriageway.
+   --------------------------------------------------------------------- */
+function getTerrainHeight(pos, lat){
+  const n = G.segs.length;
+  if(!n || !G.segs[0].w3) return 0;
+  const raw = pos / SEG;
+  const i = ((Math.floor(raw) % n) + n) % n;
+  const seg = G.segs[i];
+  const roadY = pathAt(pos).y;
+  return roadY + terrainRelief(i, lat, seg);
+}
+function terrainRelief(i, lat, seg){
+  seg = seg || G.segs[i];
+  if(!seg) return 0;
+  const R = reliefFor(seg);
+  const hw = halfWidthOf(seg);
+  const edge = hw + 2.5;                       // the shoulder, still flat
+  const a = Math.abs(lat);
+  if(a <= edge) return 0;                      // the road platform is level
+  // how far out we are, normalised over the reach
+  const d = Math.min(1, (a - edge) / (TERRAIN.reach - edge));
+  const ramp = d*d*(3 - 2*d);                  // smoothstep, so it leaves the shoulder cleanly
+  /* Two shapes are combined.
+
+     1. The hillside bench. Where a profile has cut and fill — the Eastern
+        Highlands above all — the road is a shelf carved into a slope: the
+        ground RISES on the uphill side as a cut face and FALLS away on the
+        other. Which side is uphill drifts slowly along the road, so the
+        hillside swaps over as you round a spur, the way Christmas Pass does.
+        This is the dominant shape wherever it applies.
+
+     2. Rolling ground, from summed noise. It is the whole story on flat
+        ground and only a modulation on a hillside. */
+  const bench = (tNoise(i*0.055, 0, 21) - 0.5) * 2;      // −1 hill left … +1 hill right
+  const benchN = Math.max(0.35, Math.abs(bench));
+  const hill = (R.cut + R.fall) * 0.5;
+  let h = 0;
+  if(hill > 0.05){
+    const uphill = Math.sign(lat) === Math.sign(bench || 1);
+    // the cut face is steep and short; the fill slope is longer and shallower
+    const slope = uphill ? R.cut*1.9 : -R.fall*1.25;
+    // the ramp keeps the hillside leaving the shoulder at exactly zero, so the
+    // road platform and the slope meet without a step
+    const shape = uphill ? Math.pow(d, 0.62) : Math.pow(d, 1.25);
+    h += slope * R.amp * benchN * shape * ramp;
+  }
+  const roll = (tNoise(i*R.roll, 0, 11) - 0.5) * 2
+             + (tNoise(i*R.roll*2.7, 0, 12) - 0.5) * 0.9
+             + (tNoise(i*R.roll*7.1, 0, 13) - 0.5) * 0.45 * R.rough;
+  h += roll * R.amp * ramp * (hill > 0.05 ? 0.30 : 1);
+  // fine surface detail near the road so the verge is not glassy
+  h += (segHash(i*7 + Math.round(a*0.4), 31) - 0.5) * 0.35 * R.rough * ramp;
+  return h;
+}
+/* is the ground beside the road a cut face (soil showing) or a grassy fall? */
+function isCutSide(i, lat){
+  const seg = G.segs[i]; if(!seg) return false;
+  const R = reliefFor(seg);
+  if(R.cut <= 0.05) return false;
+  const bench = (tNoise(i*0.055, 0, 21) - 0.5) * 2;
+  return Math.sign(lat) === Math.sign(bench || 1);
+}
+
+/* --------------------------------------------------------- chunks ---- */
+function buildTerrain(){
+  const n = G.segs.length;
+  if(!n) { TERRAIN.chunks = []; return; }
+  const count = Math.ceil(n / TERRAIN.chunkSegs);
+  TERRAIN.chunks = [];
+  for(let c=0;c<count;c++){
+    TERRAIN.chunks.push({
+      i0: c*TERRAIN.chunkSegs,
+      i1: Math.min(n-1, (c+1)*TERRAIN.chunkSegs),
+      lod: -1, mesh: null, soil: null, key: null
     });
   }
-  g.flushSoup(C3('#f2c40f'), {spec:0.1});
+  TERRAIN.stats.built = 0;
+  TERRAIN.stats.total = TERRAIN.chunks.length;
+}
+/* build one chunk's triangle soup at a given level of detail */
+function generateTerrainChunk(chunk, lod){
+  const [lat, step] = TERRAIN.lodRes[Math.max(0, Math.min(3, lod))];
+  const grass = [], soil = [];
+  const n = G.segs.length;
+  // lateral sample positions, densest near the road where the eye is
+  const us = [];
+  for(let k=-lat;k<=lat;k++){
+    const t = k/lat;
+    const sgn = Math.sign(t) || 1;
+    us.push(sgn * (Math.pow(Math.abs(t), 1.7) * TERRAIN.reach));
+  }
+  const P = (i,u)=>{
+    const seg = G.segs[Math.min(n-1, i)];
+    if(!seg || !seg.w3) return null;
+    const r = roadRight(seg.w3.h);
+    const y = seg.w3.y + terrainRelief(i, u, seg);
+    return [seg.w3.x + r.x*u, y, seg.w3.z + r.z*u];
+  };
+  for(let i=chunk.i0; i<chunk.i1; i+=step){
+    const j = Math.min(chunk.i1, i+step);
+    if(j >= n) break;
+    for(let k=0;k<us.length-1;k++){
+      const u0 = us[k], u1 = us[k+1];
+      // skip the carriageway itself — the road mesh owns it
+      const seg = G.segs[i];
+      const edge = halfWidthOf(seg) + 2.5;
+      if(Math.abs(u0) < edge && Math.abs(u1) < edge) continue;
+      const a = P(i,u0), b = P(j,u0), c = P(j,u1), d = P(i,u1);
+      if(!a||!b||!c||!d) continue;
+      // a rough normal, good enough for lambert on a low-slope field
+      const nx = (a[1]-d[1]), nz = (a[1]-b[1]);
+      const nrm = [nx*0.25, 1, nz*0.25];
+      const L = Math.hypot(nrm[0],nrm[1],nrm[2]) || 1;
+      const N = [nrm[0]/L, nrm[1]/L, nrm[2]/L];
+      // a cut face shows bare soil; everything else is vegetated ground
+      const cut = isCutSide(i, (u0+u1)/2) && Math.abs(u0) < TERRAIN.reach*0.45;
+      const steep = Math.abs(a[1]-d[1]) / Math.max(0.5, Math.abs(u1-u0)) > 0.42;
+      const target = (cut || steep) ? soil : grass;
+      target.push(a[0],a[1],a[2], N[0],N[1],N[2], 0,0);
+      target.push(d[0],d[1],d[2], N[0],N[1],N[2], 1,0);
+      target.push(c[0],c[1],c[2], N[0],N[1],N[2], 1,1);
+      target.push(a[0],a[1],a[2], N[0],N[1],N[2], 0,0);
+      target.push(c[0],c[1],c[2], N[0],N[1],N[2], 1,1);
+      target.push(b[0],b[1],b[2], N[0],N[1],N[2], 0,1);
+    }
+  }
+  chunk.mesh = grass;
+  chunk.soil = soil;
+  chunk.lod = lod;
+  TERRAIN.stats.built++;
+}
+/* choose a level of detail for each chunk from its distance to the camera */
+function updateTerrainLOD(){
+  if(!TERRAIN.chunks) buildTerrain();
+  const q = Q();
+  const budgetLod = q.detail === 0 ? 1 : 0;      // LOW never uses the finest mesh
+  let visible = 0;
+  const n = G.segs.length;
+  TERRAIN.chunks.forEach(ch=>{
+    const mid = ((ch.i0 + ch.i1)/2) * SEG;
+    const d = Math.abs(dz(G.pos, mid)) / WPM;
+    ch.dist = d;
+    if(d > q.dist * 1.6){ ch.vis = false; return; }
+    ch.vis = true; visible++;
+    let lod = 3;
+    if(d < TERRAIN.lodDist[0]) lod = 0;
+    else if(d < TERRAIN.lodDist[1]) lod = 1;
+    else if(d < TERRAIN.lodDist[2]) lod = 2;
+    lod = Math.max(lod, budgetLod);
+    if(ch.lod !== lod) generateTerrainChunk(ch, lod);
+  });
+  TERRAIN.stats.visible = visible;
+}
+/* draw the visible chunks, batched into two soups */
+function drawTerrain(){
+  if(!TERRAIN.chunks) return;
+  updateTerrainLOD();
+  const g = GLR, wet = G.wx==='rain' ? 1 : 0;
+  const here = segAt(G.pos) || G.segs[0];
+  const prof = profileFor(here);
+  const z = ZONE[here.zone];
+  const dry = (G.wx === 'sunny' && (G.clock/3600) > 8);
+  const grassCol = dry ? mixHex(z.grass2, prof.grassDry, 0.55) : z.grass2;
+  // ground cover
+  g.beginSoup();
+  let any = false;
+  TERRAIN.chunks.forEach(ch=>{
+    if(!ch.vis || !ch.mesh || !ch.mesh.length) return;
+    any = true;
+    for(let k=0;k<ch.mesh.length;k++) g.soup.push(ch.mesh[k]);
+  });
+  if(any) g.flushSoup(C3(grassCol), {spec:0.015 + wet*0.08});
+  // exposed soil: cut faces and steep ground
+  g.beginSoup(); any = false;
+  TERRAIN.chunks.forEach(ch=>{
+    if(!ch.vis || !ch.soil || !ch.soil.length) return;
+    any = true;
+    for(let k=0;k<ch.soil.length;k++) g.soup.push(ch.soil[k]);
+  });
+  if(any) g.flushSoup(C3(prof.soil), {spec:0.02 + wet*0.12});
+}
+
+/* ------------------------------------------------------ distant relief */
+/* Far hills and mountain silhouettes, so the world does not simply end.
+   Drawn as a ring of low-poly ridges beyond the fog, keyed to the profile. */
+function drawDistantRelief(cam){
+  const here = segAt(G.pos) || G.segs[0];
+  const prof = profileFor(here);
+  if(!prof.skyline) return;
+  const q = Q();
+  const env = envColours();
+  const me = pathAt(G.pos);
+  const far = q.dist * 1.25;
+  if(q.detail === 0 && prof.skyline !== 'mountains') return;
+  const ridges = q.detail === 0 ? 1 : q.detail === 1 ? 2 : (prof.skyline === 'mountains' ? 3 : 2);
+  for(let r=0;r<ridges;r++){
+    const dist = far * (1 + r*0.35);
+    // haze: distant ground washes toward the sky colour
+    const t = 0.45 + r*0.2 + prof.haze*0.25;
+    const col = mixHex(prof.skyline === 'mountains' ? '#3f5a4a' : '#5a6270',
+                       '#'+[env.sky[0],env.sky[1],env.sky[2]].map(v=>
+                         ('0'+Math.round(v*255).toString(16)).slice(-2)).join(''),
+                       Math.min(0.85, t));
+    const peaks = (prof.skyline === 'mountains' ? 9 : 6) - (q.detail === 0 ? 3 : q.detail === 1 ? 1 : 0);
+    for(let k=0;k<peaks;k++){
+      const ang = (k/peaks)*Math.PI*2 + r*0.7 + segHash(k, 90+r)*0.5;
+      const hgt = (prof.skyline === 'mountains' ? 55 : 20) *
+                  (0.5 + segHash(k*3+r, 91));
+      const wide = dist * 0.55;
+      const x = me.x + Math.sin(ang)*dist, z = me.z + Math.cos(ang)*dist;
+      GLR.draw('cone', M4.trs(x, me.y - 12, z, ang, wide, hgt, wide*0.6),
+        C3(col), {spec:0, noCull:true});
+    }
+  }
 }
 
 /* -------------------------------------------------------- 3D objects -- */
@@ -2990,14 +4268,41 @@ function glowSprite(x,y,z, r, colour, cam){
   GLR.draw('quad', M4.trs(x,y,z, ang, r,r,r), colour,
     {emissive:colour, alpha:0.55, spec:0, noDepthWrite:true, noCull:true});
 }
-/* a sign face, standing on its post, turned to face oncoming traffic */
-function drawSign3D(code, x,y,z, h, size, isBoard){
+/* ---------------------------------------------------------------------
+   A sign knows the road heading, which verge it stands on, and which traffic
+   it addresses. Its rotation is derived from that — never hard-coded — and it
+   gets a real front face plus a plain grey back, so it is never mirrored and
+   never readable from behind.
+   facing: 'traffic'  → faces drivers travelling with the road (the player)
+           'oncoming' → faces the opposing carriageway
+           'both'     → a face on each side
+   --------------------------------------------------------------------- */
+function signYaw(roadH, facing){
+  // the quad's own face normal is its local +z, which the model matrix sends to
+  // roadFwd(ry). To be read by a driver coming towards us we must point back
+  // down the road, i.e. against their direction of travel.
+  return facing === 'oncoming' ? roadH : roadH + Math.PI;
+}
+function drawSign3D(code, x,y,z, roadH, size, opts){
+  opts = opts || {};
   const tex = GLR.signTex(code);
   if(!tex) return;
-  const s = size || 0.78;
-  boxAt(x, y, z, 0.07, 2.0, 0.07, h, C3('#5a6070'), {spec:0.1});
-  GLR.draw('quad', M4.trs(x, y + 2.0 + s*0.5, z, h + Math.PI, s, s, s), C3('#ffffff'),
-    {tex:tex, spec:0.15, noCull:true, emissive: envColours().day ? null : new Float32Array([0.16,0.16,0.18])});
+  const s = size || 0.78, facing = opts.facing || 'traffic';
+  const postH = opts.postH || 2.0;
+  const night = !envColours().day;
+  const emis = night ? new Float32Array([0.16,0.16,0.18]) : null;   // signs are retro-reflective
+  boxAt(x, y, z, 0.07, postH, 0.07, roadH, C3('#5a6070'), {spec:0.1});
+  const cy = y + postH + s*0.5;
+  const faces = facing === 'both' ? ['traffic','oncoming'] : [facing];
+  faces.forEach(f=>{
+    const yaw = signYaw(roadH, f);
+    GLR.draw('quad', M4.trs(x, cy, z, yaw, s, s, s), C3('#ffffff'),
+      {tex:tex, spec:0.15, emissive:emis});
+    // plain aluminium back, offset a few millimetres behind the face
+    const bf = roadFwd(yaw);
+    GLR.draw('quad', M4.trs(x - bf.x*0.02, cy, z - bf.z*0.02, yaw + Math.PI, s, s, s),
+      C3('#8d94a6'), {spec:0.3});
+  });
 }
 /* a working robot: three lamps, only the live one emits */
 function drawRobot3D(x,y,z,h, j, cam){
@@ -3036,17 +4341,110 @@ function drawStreetLight3D(x,y,z,h,side, night, cam){
       {alpha:0.1, emissive:C3s('#ffdf9a',0.25), spec:0, noDepthWrite:true});
   }
 }
-function drawTree3D(x,y,z, hgt, kind){
+/* =====================================================================
+   TREES  (Phase 2 — the canopy the road runs through)
+   ---------------------------------------------------------------------
+   Species differ in crown shape, not just colour, because that is what the
+   reference photographs actually distinguish:
+     jacaranda / flamboyant  low multi-stem, wide crown LEANING over the road
+     acacia                  flat-topped umbrella, wider than it is tall
+     msasa / marula          rounded miombo crown
+     mopane                  small, upright, sparse
+     baobab                  fat trunk, stubby branches
+     pine / eucalyptus       tall and narrow
+     palm                    bare stem with a fan head
+   ===================================================================== */
+const SPECIES = {
+  jacaranda: {trunk:'#6b5142', leaf:'#7c6fd0', leaf2:'#6a5cc0', crown:'arch',  stems:3, spread:1.5},
+  flamboyant:{trunk:'#6b5142', leaf:'#c0533a', leaf2:'#a8432e', crown:'arch',  stems:3, spread:1.6},
+  msasa:     {trunk:'#6b4b2a', leaf:'#3f8f42', leaf2:'#357a38', crown:'round', stems:2, spread:1.2},
+  marula:    {trunk:'#7a6248', leaf:'#4f9a4a', leaf2:'#438540', crown:'round', stems:1, spread:1.25},
+  acacia:    {trunk:'#4a4038', leaf:'#7f9a4a', leaf2:'#6f8a3f', crown:'flat',  stems:1, spread:1.9},
+  mopane:    {trunk:'#5a4a3a', leaf:'#6f8a3c', leaf2:'#5f7a33', crown:'round', stems:1, spread:0.85},
+  teak:      {trunk:'#6b5a44', leaf:'#4a8a44', leaf2:'#3f7a3a', crown:'round', stems:1, spread:1.1},
+  wildfig:   {trunk:'#8a8071', leaf:'#2f7d43', leaf2:'#286b3a', crown:'round', stems:2, spread:1.7},
+  baobab:    {trunk:'#9a8f7a', leaf:'#6f8a3c', leaf2:'#5f7a33', crown:'stub',  stems:1, spread:1.0},
+  pine:      {trunk:'#5a4232', leaf:'#1f6b3c', leaf2:'#1a5c33', crown:'cone',  stems:1, spread:0.8},
+  eucalyptus:{trunk:'#a89f8f', leaf:'#4f7a55', leaf2:'#44694a', crown:'tall',  stems:1, spread:0.7},
+  palm:      {trunk:'#8a7a5a', leaf:'#3f8f52', leaf2:'#357a45', crown:'fan',   stems:1, spread:0.9},
+  tree:      {trunk:'#5a4232', leaf:'#2f7d43', leaf2:'#286b3a', crown:'round', stems:1, spread:1.2}
+};
+function drawTree3D(x,y,z, hgt, kind, opt){
+  opt = opt || {};
+  const S = SPECIES[kind] || SPECIES.tree;
   const q = Q();
-  const trunk = kind==='msasa' ? '#6b4b2a' : '#5a4232';
-  cylAt(x, y, z, 0.16, hgt*0.55, 0, C3(trunk), {spec:0.05});
-  const leaf = kind==='pine' ? '#1f6b3c' : kind==='msasa' ? '#3f8f42' : '#2f7d43';
-  if(kind==='pine') GLR.draw('cone', M4.trs(x, y+hgt*0.4, z, 0, hgt*0.9, hgt*1.0, hgt*0.9), C3(leaf), {spec:0.03});
-  else if(q.detail >= 1){
-    GLR.draw('sphere', M4.trs(x, y+hgt*0.45, z, 0, hgt*1.15, hgt*0.85, hgt*1.15), C3(leaf), {spec:0.03});
-    GLR.draw('sphere', M4.trs(x+hgt*0.25, y+hgt*0.62, z, 0, hgt*0.7, hgt*0.6, hgt*0.7), C3(leaf), {spec:0.03});
-  } else GLR.draw('sphere', M4.trs(x, y+hgt*0.45, z, 0, hgt*1.1, hgt*0.85, hgt*1.1), C3(leaf), {spec:0.03});
+  const lean = opt.lean || 0;              // radians of tilt toward the road
+  const rot  = opt.rot  || 0;
+  const dir  = opt.side || 0;              // −1 left kerb, +1 right kerb
+  const leafC = C3(opt.dry ? '#8a7a4a' : S.leaf);
+  const leaf2 = C3(opt.dry ? '#7a6a40' : S.leaf2);
+  const trunk = C3(S.trunk);
+  blobShadow(x, y, z, hgt*0.28*S.spread);
+
+  // ---- stems. Jacarandas and figs branch low from several stems.
+  const stems = q.detail === 0 ? 1 : S.stems;
+  for(let k=0;k<stems;k++){
+    const off = stems>1 ? (k/(stems-1) - 0.5)*hgt*0.14 : 0;
+    const tilt = lean*dir*-1 + (stems>1 ? (k-(stems-1)/2)*0.13 : 0);
+    GLR.draw('cyl', M4.trs(x + Math.cos(rot)*off, y, z + Math.sin(rot)*off,
+      rot, hgt*0.10, hgt*(S.crown==='fan'?0.78:0.5), hgt*0.10, 0, tilt),
+      trunk, {spec:0.05});
+  }
+  // where the crown sits once the trunk has leaned
+  const ch = hgt*(S.crown==='fan'?0.8:S.crown==='cone'?0.42:0.52);
+  const cx0 = x + Math.cos(rot)*0 - (roadRight(rot).x)*dir*lean*hgt*0.55;
+  const cz0 = z - (roadRight(rot).z)*dir*lean*hgt*0.55;
+
+  switch(S.crown){
+    case 'arch': {
+      // a wide crown pushed out over the carriageway — this is what closes the
+      // canopy over a Harare avenue
+      const w = hgt*S.spread;
+      GLR.draw('sphere', M4.trs(cx0, y+ch, cz0, rot, w*1.15, hgt*0.5, w*0.95), leafC, {spec:0.03});
+      if(q.detail >= 1){
+        GLR.draw('sphere', M4.trs(cx0 - roadRight(rot).x*dir*w*0.3, y+ch+hgt*0.06,
+          cz0 - roadRight(rot).z*dir*w*0.3, rot, w*0.85, hgt*0.36, w*0.7), leaf2, {spec:0.03});
+        GLR.draw('sphere', M4.trs(cx0, y+ch+hgt*0.2, cz0, rot, w*0.6, hgt*0.28, w*0.55), leafC, {spec:0.03});
+      }
+      break; }
+    case 'flat': {
+      // the acacia umbrella: much wider than tall, held high on a bare stem
+      const w = hgt*S.spread;
+      GLR.draw('sphere', M4.trs(cx0, y+hgt*0.5, cz0, rot, w*1.3, hgt*0.30, w*1.15), leafC, {spec:0.03});
+      if(q.detail >= 1)
+        GLR.draw('sphere', M4.trs(cx0, y+hgt*0.62, cz0, rot, w*0.8, hgt*0.2, w*0.7), leaf2, {spec:0.03});
+      break; }
+    case 'cone':
+      GLR.draw('cone', M4.trs(cx0, y+hgt*0.32, cz0, rot, hgt*0.62, hgt*0.85, hgt*0.62), leafC, {spec:0.03});
+      break;
+    case 'tall':
+      GLR.draw('sphere', M4.trs(cx0, y+hgt*0.5, cz0, rot, hgt*0.42, hgt*0.62, hgt*0.42), leafC, {spec:0.03});
+      break;
+    case 'stub':
+      // baobab: a fat bottle trunk with stubby branches
+      GLR.draw('cyl', M4.trs(x, y, z, rot, hgt*0.34, hgt*0.6, hgt*0.34), trunk, {spec:0.05});
+      for(let k=0;k<4;k++){
+        const an = rot + k*1.57;
+        GLR.draw('cyl', M4.trs(x+Math.cos(an)*hgt*0.13, y+hgt*0.58, z+Math.sin(an)*hgt*0.13,
+          an, hgt*0.07, hgt*0.24, hgt*0.07, 0, 0.7), trunk, {spec:0.05});
+      }
+      break;
+    case 'fan':
+      for(let k=0;k<6;k++){
+        const an = rot + k*1.05;
+        GLR.draw('cone', M4.trs(cx0+Math.cos(an)*hgt*0.16, y+hgt*0.78, cz0+Math.sin(an)*hgt*0.16,
+          an, hgt*0.30, hgt*0.22, hgt*0.12, 0, 1.1), leafC, {spec:0.03});
+      }
+      break;
+    default: {
+      const w = hgt*S.spread;
+      GLR.draw('sphere', M4.trs(cx0, y+ch, cz0, rot, w*1.0, hgt*0.5, w*1.0), leafC, {spec:0.03});
+      if(q.detail >= 1)
+        GLR.draw('sphere', M4.trs(cx0+w*0.22, y+ch+hgt*0.12, cz0, rot, w*0.62, hgt*0.34, w*0.62), leaf2, {spec:0.03});
+    }
+  }
 }
+
 function drawBuilding3D(kind, x,y,z,h, sp, night){
   if(kind==='tower'){
     const ht = (sp.h||3)*2.6, w = 7 + (sp.h||3);
@@ -3076,7 +4474,7 @@ function drawBuilding3D(kind, x,y,z,h, sp, night){
   }
 }
 function drawTollgate3D(x,y,z,h, st, night, cam){
-  const nx = Math.cos(h), nz = -Math.sin(h);
+  const rr = roadRight(h), nx = rr.x, nz = rr.z;
   // overhead gantry
   boxAt(x, y, z, 16, 0.5, 1.6, h, C3('#2b3a63'), {spec:0.2});
   boxAt(x, y+5.4, z, 17, 1.2, 2.2, h, C3('#22304f'), {spec:0.2,
@@ -3099,11 +4497,12 @@ function drawTollgate3D(x,y,z,h, st, night, cam){
   glowSprite(x, y+4.6, z, 1.4, C3s(col, 0.4), cam);
 }
 function drawServiceStation3D(x,y,z,h, night, cam){
-  const nx = Math.cos(h), nz = -Math.sin(h);
+  const rr = roadRight(h), nx = rr.x, nz = rr.z;
   // canopy
   boxAt(x, y+5.0, z, 15, 0.7, 10, h, C3('#17A96A'), {spec:0.2, emissive:C3s('#17A96A', night?0.25:0.06)});
   [[-6,-4],[6,-4],[-6,4],[6,4]].forEach(p=>{
-    boxAt(x + nx*p[0] - Math.sin(h)*p[1], y, z + nz*p[0] - Math.cos(h)*p[1], 0.5,5.0,0.5, h, C3('#0f7a4d'), {spec:0.2});
+    const ff2 = roadFwd(h);
+    boxAt(x + nx*p[0] + ff2.x*p[1], y, z + nz*p[0] + ff2.z*p[1], 0.5,5.0,0.5, h, C3('#0f7a4d'), {spec:0.2});
   });
   // pumps with price board
   [-2.2, 2.2].forEach(p=>{
@@ -3145,8 +4544,10 @@ function drawCar3D(x,y,z, h, type, colour, o, cam){
   const body = C3(colour || '#f2f5ff');
   const wheelR = type==='truck'||type==='bus' ? 0.52 : type==='suv'||type==='kombi' ? 0.38 : 0.32;
   blobShadow(x, y, z, d.l*0.55);
-  // lower body
-  boxAt(x, y+wheelR*0.55, z, d.w, d.h*0.62, d.l, h, body, {spec:0.55});
+  // lower body, leaning under acceleration, braking and cornering
+  const pit = o.pitch||0, rol = o.roll||0;
+  GLR.draw('box', M4.trs(x, y+wheelR*0.55, z, h, d.w, d.h*0.62, d.l, pit, rol), body,
+    {spec:0.55 - (o.damage||0)*0.003});
   // cabin / glasshouse, set back a little
   const cabZ = (type==='bus'||type==='kombi'||type==='truck') ? 0 : -d.l*0.06;
   GLR.draw('box', M4.trs(x - Math.sin(h)*cabZ, y+wheelR*0.55+d.h*0.62, z - Math.cos(h)*cabZ, h,
@@ -3158,22 +4559,25 @@ function drawCar3D(x,y,z, h, type, colour, o, cam){
   // wheels
   const wx = d.w*0.46, wz = d.l*0.33;
   if(lod < 2) [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>{
-    const ox = Math.cos(h)*p[0]*wx + Math.sin(h)*p[1]*wz;
-    const oz = -Math.sin(h)*p[0]*wx + Math.cos(h)*p[1]*wz;
+    const rr = roadRight(h), ff = roadFwd(h);
+    const ox = rr.x*p[0]*wx + ff.x*p[1]*wz;
+    const oz = rr.z*p[0]*wx + ff.z*p[1]*wz;
     const steer = (o.steer && p[1]>0) ? o.steer*0.4 : 0;
     cylAt(x+ox, y+wheelR, z+oz, wheelR, 0.22, h+steer, C3('#15181f'), {spec:0.08}, 0, Math.PI/2);
   });
   // lights
   const fz = d.l*0.5, lz = -d.l*0.5;
   const lampF = (side, col, emis, r)=>{
-    const ox = Math.cos(h)*side*d.w*0.36 + Math.sin(h)*fz;
-    const oz = -Math.sin(h)*side*d.w*0.36 + Math.cos(h)*fz;
+    const rr = roadRight(h), ff = roadFwd(h);
+    const ox = rr.x*side*d.w*0.36 + ff.x*fz;
+    const oz = rr.z*side*d.w*0.36 + ff.z*fz;
     boxAt(x+ox, y+wheelR*0.9, z+oz, 0.34, 0.18, 0.1, h, col, {emissive:emis});
     if(emis && r && lod === 0) glowSprite(x+ox, y+wheelR, z+oz, r, emis, cam);
   };
   const lampR = (side, col, emis, r)=>{
-    const ox = Math.cos(h)*side*d.w*0.36 - Math.sin(h)*fz;
-    const oz = -Math.sin(h)*side*d.w*0.36 - Math.cos(h)*fz;
+    const rr = roadRight(h), ff = roadFwd(h);
+    const ox = rr.x*side*d.w*0.36 - ff.x*fz;
+    const oz = rr.z*side*d.w*0.36 - ff.z*fz;
     boxAt(x+ox, y+wheelR*1.0, z+oz, 0.32, 0.18, 0.1, h, col, {emissive:emis});
     if(emis && r && lod === 0) glowSprite(x+ox, y+wheelR*1.1, z+oz, r, emis, cam);
   };
@@ -3193,9 +4597,21 @@ function drawCar3D(x,y,z, h, type, colour, o, cam){
     lampF(side*1.25, C3('#ffb020'), C3s('#ffb020',0.95), 1.2);
     lampR(side*1.25, C3('#ffb020'), C3s('#ffb020',0.95), 1.2);
   }
+  // number plate: red characters on white for a public service vehicle
+  if(lod === 0){
+    const pl = o.state ? PLATE_STATE : (o.psv ? PLATE_PSV : PLATE_ORD);
+    const pf = roadFwd(h);
+    [[1, fz],[-1, -fz]].forEach(pp=>{
+      const px = x + pf.x*pp[1], pz = z + pf.z*pp[1];
+      boxAt(px, y+wheelR*0.42, pz, 0.52, 0.14, 0.04, h, C3(pl.bg), {spec:0.2});
+      boxAt(px, y+wheelR*0.46, pz, 0.42, 0.06, 0.05, h, C3(pl.ink),
+        {emissive: o.state ? new Float32Array([0.1,0.02,0.02]) : null});
+    });
+  }
   // heavy vehicles carry the red-and-yellow chevron
   if(type==='truck' || type==='bus'){
-    const ox = -Math.sin(h)*fz, oz = -Math.cos(h)*fz;
+    const cf = roadFwd(h);
+    const ox = -cf.x*fz, oz = -cf.z*fz;
     boxAt(x+ox, y+wheelR*1.5, z+oz, d.w*0.8, 0.5, 0.06, h, C3('#F5B324'), {emissive:new Float32Array([0.16,0.11,0.0])});
     boxAt(x+ox, y+wheelR*1.5+0.5, z+oz, d.w*0.8, 0.4, 0.06, h, C3('#E3342F'), {emissive:new Float32Array([0.16,0.02,0.02])});
   }
@@ -3206,13 +4622,14 @@ function drawPed3D(x,y,z,h, ph, walking, shirt, small){
   const sw = walking ? Math.sin(ph) : 0;
   blobShadow(x,y,z, 0.34*s);
   // legs
+  const pr = roadRight(h);
   [-1,1].forEach(k=>{
-    GLR.draw('box', M4.trs(x + Math.cos(h)*k*0.11*s, y+0.82*s, z - Math.sin(h)*k*0.11*s, h,
+    GLR.draw('box', M4.trs(x + pr.x*k*0.11*s, y+0.82*s, z + pr.z*k*0.11*s, h,
       0.14*s, 0.82*s, 0.16*s, sw*k*0.4), C3('#2b3145'), {spec:0.05});
   });
   boxAt(x, y+0.8*s, z, 0.42*s, 0.62*s, 0.24*s, h, C3(shirt||'#38BDF8'), {spec:0.08});
   [-1,1].forEach(k=>{
-    GLR.draw('box', M4.trs(x + Math.cos(h)*k*0.26*s, y+1.36*s, z - Math.sin(h)*k*0.26*s, h,
+    GLR.draw('box', M4.trs(x + pr.x*k*0.26*s, y+1.36*s, z + pr.z*k*0.26*s, h,
       0.11*s, 0.56*s, 0.13*s, -sw*k*0.45), C3(shirt||'#38BDF8'), {spec:0.08});
   });
   GLR.draw('sphere', M4.trs(x, y+1.42*s, z, h, 0.24*s,0.28*s,0.24*s), C3('#5a4232'), {spec:0.1});
@@ -3224,16 +4641,18 @@ function drawAnimal3D(x,y,z,h, kind){
   blobShadow(x,y,z, L*0.5);
   boxAt(x, y+Hh*0.6, z, W, Hh*0.7, L, h, C3(col), {spec:0.05});
   boxAt(x + Math.sin(h)*L*0.55, y+Hh*0.85, z + Math.cos(h)*L*0.55, W*0.7, Hh*0.5, W*0.8, h, C3(col), {spec:0.05});
+  const ar = roadRight(h), af = roadFwd(h);
   [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>{
-    const ox = Math.cos(h)*p[0]*W*0.4 - Math.sin(h)*p[1]*L*0.34;
-    const oz = -Math.sin(h)*p[0]*W*0.4 - Math.cos(h)*p[1]*L*0.34;
+    const ox = ar.x*p[0]*W*0.4 + af.x*p[1]*L*0.34;
+    const oz = ar.z*p[0]*W*0.4 + af.z*p[1]*L*0.34;
     boxAt(x+ox, y, z+oz, 0.11, Hh*0.65, 0.11, h, C3('#3a2c1e'), {spec:0.03});
   });
 }
 function drawWagon3D(x,y,z,h){
   boxAt(x, y+0.6, z, 1.5, 0.5, 2.6, h, C3('#8a6a3a'), {spec:0.06});
+  const wr = roadRight(h);
   [-1,1].forEach(k=>{
-    cylAt(x + Math.cos(h)*k*0.85, y+0.45, z - Math.sin(h)*k*0.85, 0.45, 0.14, h, C3('#5a4232'), {spec:0.05}, 0, Math.PI/2);
+    cylAt(x + wr.x*k*0.85, y+0.45, z + wr.z*k*0.85, 0.45, 0.14, h, C3('#5a4232'), {spec:0.05}, 0, Math.PI/2);
   });
   drawAnimal3D(x + Math.sin(h)*2.6, y, z + Math.cos(h)*2.6, h, 'cattle');
   drawAnimal3D(x + Math.sin(h)*2.6 + Math.cos(h)*0.9, y, z + Math.cos(h)*2.6 - Math.sin(h)*0.9, h, 'cattle');
@@ -3298,10 +4717,15 @@ function renderWorld3D(dt){
     new Float32Array([Math.sin(ph), -0.06, Math.cos(ph)]),
     G.fog ? 34 : (G.hiBeam ? 110 : 62));
 
-  // ---- distant ground so the horizon never shows through
+  // ---- the ground: a base plane far below, then real terrain over it
   const me = roadPoint(G.pos, 0, 0);
   const gz = ZONE[(segAt(G.pos)||{zone:'suburb'}).zone];
-  GLR.draw('ground', M4.trs(me.x, me.y-0.12, me.z, 0, 2200,1,2200), C3(gz.grass2), {spec:0.01});
+  const prof0 = profileFor(segAt(G.pos) || G.segs[0]);
+  const dry0 = (G.wx === 'sunny' && (G.clock/3600) > 8);
+  GLR.draw('ground', M4.trs(me.x, me.y-26, me.z, 0, 3000,1,3000),
+    C3(dry0 ? mixHex(gz.grass2, prof0.grassDry, 0.6) : gz.grass2), {spec:0.01});
+  drawDistantRelief(cam);
+  drawTerrain();
 
   // ---- the road itself
   const n = G.segs.length;
@@ -3318,6 +4742,17 @@ function renderWorld3D(dt){
     if(!s || !s.w3) continue;
     const dist = k * SEGM;
     const w3 = s.w3, hh = w3.h;
+    const prof = profileFor(s);
+    if(s.junction && s.junction.kind==='robot'){
+      [-1.2, 1.2].forEach(sd=>{
+        const p = edgePoints(i, sd);
+        if(p) drawRobot3D(p.x, p.y, p.z, hh, s.junction, cam);
+      });
+    }
+    // a hard draw budget for the roadside: once reached, stop adding furniture
+    // (but never abandon the frame — traffic and the player's car still draw)
+    const budget = q.detail === 0 ? 132 : q.detail === 1 ? 260 : 900;
+    if(GLR.calls > budget) break;
     if(s.junction && s.junction.kind==='robot'){
       [-1.2, 1.2].forEach(sd=>{
         const p = edgePoints(i, sd);
@@ -3326,19 +4761,37 @@ function renderWorld3D(dt){
     }
     s.sprites.forEach(sp=>{
       if(dist > q.dist) return;
+      // on the lower presets, thin the roadside furniture with distance
+      if(q.detail === 0 && dist > q.dist*0.5 && (i % 2)) return;
+      if(q.detail <= 1 && dist > q.dist*0.75 && (i % 3)) return;
       const off = sp.off !== undefined && sp.off !== '' ? sp.off : 1.4;
       const p = edgePoints(i, off);
       if(!p) return;
+      // sit the object on the terrain rather than on the road plane
+      p.y += terrainRelief(i, off*(p.hw||halfWidthSeg(i)), s);
       switch(sp.kind){
-        case 'sign': if(sp.code) drawSign3D(sp.code, p.x,p.y,p.z, hh, 0.85); break;
-        case 'board': if(sp.code) drawSign3D(sp.code, p.x,p.y,p.z, hh, 1.5, true); break;
+        case 'sign': if(sp.code)
+            drawSign3D(sp.code, p.x,p.y,p.z, hh, 0.85,
+              {facing: off < 0 ? 'traffic' : 'oncoming'});
+          break;
+        case 'board': if(sp.code)
+            drawSign3D(sp.code, p.x,p.y,p.z, hh, 1.6,
+              {facing: off < 0 ? 'traffic' : 'oncoming', postH:2.6});
+          break;
         case 'robot': break;                                   // drawn above
         case 'pedsig': drawPedSignal3D(p.x,p.y,p.z, hh, sp.sig, cam); break;
         case 'pole': if(dist < q.dist*0.8) drawStreetLight3D(p.x,p.y,p.z, hh, Math.sign(off), night, cam); break;
-        case 'tree': case 'msasa': case 'pine':
-          if(dist < q.dist*Math.min(1,q.veg) && (q.veg >= 1 || (i % (q.veg<0.5?3:2)) === 0))
-            drawTree3D(p.x,p.y,p.z, (sp.h||1.5)*2.6, sp.kind);
-          break;
+        case 'tree': case 'msasa': case 'pine': case 'jacaranda': case 'flamboyant':
+        case 'acacia': case 'mopane': case 'marula': case 'wildfig': case 'baobab':
+        case 'teak': case 'eucalyptus': case 'palm': {
+          if(!(dist < q.dist*Math.min(1,q.veg))) break;
+          if(!(q.veg >= 1 || (i % (q.veg<0.5?3:2)) === 0)) break;
+          // dry season browns the foliage off, exactly as the board shows
+          const dry = G.wx === 'sunny' && !isNight() && prof && prof.grassDry &&
+                      (s.zone==='rural' || s.zone==='gravel' || s.zone==='highway');
+          drawTree3D(p.x, p.y, p.z, (sp.h||1.5)*2.6, sp.kind,
+            {lean:sp.lean||0, rot:hh, side:sp.side||0, dry:dry});
+          break; }
         case 'tower': case 'house': case 'shop': case 'shack': case 'hut': case 'kopje': case 'chevronPost':
           drawBuilding3D(sp.kind, p.x,p.y,p.z, hh, sp, night); break;
         case 'vendor': drawPed3D(p.x,p.y,p.z, hh+Math.PI/2, 0, false, '#F5B324'); break;
@@ -3357,30 +4810,49 @@ function renderWorld3D(dt){
   }
 
   // ---- traffic
+  const carBudget = q.detail === 0 ? 200 : q.detail === 1 ? 340 : 1000;
   (G.cars||[]).forEach(c=>{
     const d = dz(G.pos, c.z)/WPM;
     if(d < -30 || d > q.dist) return;
+    if(GLR.calls > carBudget && d > 45) return;
     const p = roadPoint(c.z, c.x, 0), ph2 = pathAt(c.z).h;
     const heading = c.dir > 0 ? ph2 : ph2 + Math.PI;
     drawCar3D(p.x, p.y, p.z, heading, c.t || 'sedan', c.c || '#f2f5ff', {
       head: night || G.wx==='mist', tail: night, brake: !!c.brake,
-      indL: !!c.indL, indR: !!c.indR
+      indL: !!c.indL, indR: !!c.indR, psv: !!c.psv
     }, cam);
   });
   // ---- emergency vehicle, with its blue light
   if(G.emerg){
     const e = G.emerg, p = roadPoint(e.z, e.x || -0.52, 0), ph3 = pathAt(e.z).h;
     const ecol = e.t==='fire' ? '#E3342F' : e.t==='police' ? '#1b3a8f' : '#f2f5ff';
-    drawCar3D(p.x,p.y,p.z, ph3, e.t==='motorcade'?'sedan':'kombi', ecol, {head:true, tail:true}, cam);
-    const flash = Math.floor(G.t*6)%2===0;
-    const col = C3(flash ? '#3b82f6' : '#E3342F');
-    GLR.draw('sphere', M4.trs(p.x, p.y+2.1, p.z, ph3, 0.5,0.3,0.5), col, {emissive:col});
-    glowSprite(p.x, p.y+2.2, p.z, 4.5, C3s(flash?'#3b82f6':'#E3342F', 0.45), cam);
+    if(e.t === 'motorcade'){
+      // outriders ahead and behind, the state car in the middle carrying ZIM 1
+      for(let k=-2;k<=2;k++){
+        const q3 = roadPoint(e.z + k*9*WPM, (e.x || PLAYER_LANE) + (k===0?0:0.06*(k%2?1:-1)), 0);
+        const hh3 = pathAt(e.z + k*9*WPM).h;
+        drawCar3D(q3.x,q3.y,q3.z, hh3, k===0?'sedan':k===-2||k===2?'suv':'sedan',
+          k===0?'#0d1220':'#1b3a8f', {head:true, tail:true, state:k===0, plate:k===0?'ZIM 1':null}, cam);
+        const fl = Math.floor(G.t*7 + k)%2===0;
+        const lc = C3(fl ? '#3b82f6' : '#E3342F');
+        GLR.draw('sphere', M4.trs(q3.x, q3.y+1.7, q3.z, hh3, 0.34,0.2,0.34), lc, {emissive:lc});
+        if(k===0) glowSprite(q3.x, q3.y+1.9, q3.z, 4.0, C3s(fl?'#3b82f6':'#E3342F', 0.45), cam);
+      }
+    } else
+    drawCar3D(p.x,p.y,p.z, ph3, e.t==='fire'?'truck':'kombi', ecol, {head:true, tail:true, psv:true}, cam);
+    if(e.t !== 'motorcade'){
+      const flash = Math.floor(G.t*6)%2===0;
+      const col = C3(flash ? '#3b82f6' : '#E3342F');
+      GLR.draw('sphere', M4.trs(p.x, p.y+2.1, p.z, ph3, 0.5,0.3,0.5), col, {emissive:col});
+      glowSprite(p.x, p.y+2.2, p.z, 4.5, C3s(flash?'#3b82f6':'#E3342F', 0.45), cam);
+    }
   }
   // ---- hazards: people, livestock, carts, breakdowns, potholes
+  const hazBudget = q.detail === 0 ? 215 : q.detail === 1 ? 360 : 1100;
   (G.hazards||[]).forEach(h=>{
     const d = dz(G.pos, h.z)/WPM;
     if(d < -25 || d > q.dist) return;
+    if(GLR.calls > hazBudget && d > 35) return;
     const p = roadPoint(h.z, h.x, 0), hd = pathAt(h.z).h;
     switch(h.kind){
       case 'ped': case 'kid':
@@ -3429,9 +4901,11 @@ function renderWorld3D(dt){
   // ---- the player's own car, in the external views
   if(cam.cam.car || cam.cam.n === 'BUMPER'){
     const v = Save.car(), p = cam.p;
-    drawCar3D(p.x, p.y, p.z, p.h, v.body, Save.d.colour || v.colour, {
+    drawCar3D(p.x, p.y, p.z, G.heading !== undefined ? G.heading : p.h, v.body,
+      Save.d.colour || v.colour, {
       head: G.lights, tail: G.lights, brake: G.brake > 0.05,
-      reverse: G.gearSel === 'R', indL: G.indL, indR: G.indR, steer: G.steer
+      reverse: G.gearSel === 'R', indL: G.indL, indR: G.indR, steer: G.steer,
+      pitch: G.pitch, roll: G.roll, damage: G.damage
     }, cam);
   }
   GLR.gl.flush();
@@ -3492,10 +4966,16 @@ function renderOverlay2D(){
     cx.fillStyle = night ? '#0d1220' : '#1b2233';
     cx.beginPath(); cx.moveTo(0,0); cx.lineTo(W*0.1,0); cx.lineTo(0,H*0.75); cx.closePath(); cx.fill();
     cx.beginPath(); cx.moveTo(W,0); cx.lineTo(W*0.9,0); cx.lineTo(W,H*0.75); cx.closePath(); cx.fill();
-    cx.fillStyle = '#10151f'; cx.fillRect(W*0.42, 0, W*0.16, H*0.055);
-    // steering wheel, turning with the input
+    // interior mirror sits toward the left of a right-hand-drive screen
+    cx.fillStyle = '#10151f'; cx.fillRect(W*0.30, 0, W*0.16, H*0.055);
+    // instrument binnacle hood ahead of the driver, on the right
+    cx.fillStyle = night ? '#080c14' : '#141a26';
+    cx.beginPath(); cx.moveTo(W*0.56, H); cx.lineTo(W*0.58, dashY+H*0.03);
+    cx.quadraticCurveTo(W*0.72, dashY-H*0.03, W*0.88, dashY+H*0.05);
+    cx.lineTo(W*0.9, H); cx.closePath(); cx.fill();
+    // steering wheel, on the right — this is a right-hand-drive country
     if(cam.n==='COCKPIT'){
-      const wx2 = W*0.5, wy = H*1.02, r = W*0.26;
+      const wx2 = W*0.72, wy = H*1.02, r = W*0.24;
       cx.save(); cx.translate(wx2, wy); cx.rotate(G.steer*0.5);
       cx.strokeStyle = night ? '#161b28' : '#20283a'; cx.lineWidth = r*0.16;
       cx.beginPath(); cx.arc(0,0,r,0,7); cx.stroke();
@@ -3904,6 +5384,8 @@ function drawWorldSprite(sprite, seg, scale, destX, destY, clipY){
       cx.fillStyle = col('#c9a06a',1); cx.fillRect(destX-bw/2, destY-h*0.55, bw, h*0.55);
       cx.fillStyle = col('#8b6b3a',1); cx.beginPath(); cx.moveTo(destX-bw*0.66,destY-h*0.52);
       cx.lineTo(destX,destY-h*1.15); cx.lineTo(destX+bw*0.66,destY-h*0.52); cx.closePath(); cx.fill(); break; }
+    case 'jacaranda': case 'flamboyant': case 'acacia': case 'mopane': case 'marula':
+    case 'wildfig': case 'baobab': case 'teak': case 'eucalyptus': case 'palm':
     case 'tree': case 'msasa': case 'pine': {
       const h = w*(sprite.h||1.6)*1.5;
       cx.fillStyle = col('#6b4a2a',1); cx.fillRect(destX-w*0.07, destY-h*0.45, w*0.14, h*0.45);
@@ -4886,6 +6368,13 @@ function settingsScreen(){
     '<p class="note" style="margin-top:8px">Manual gives you clutch, gate, stalling and engine braking on any car; '+
     'automatic gives you P R N D on any car. It applies everywhere in the game, and you can switch mid-drive from the '+
     'pause menu.</p></div>'+
+    '<div class="card" style="border-color:#17A96A"><h3>STEERING ASSIST</h3>'+
+    '<div class="rowbtns"><button class="btn '+(Save.d.laneAssist===false?'ghost':'')+'" id="sAssist">'+
+      (Save.d.laneAssist===false?'ASSIST OFF — FULL MANUAL':'LANE ASSIST ON')+'</button></div>'+
+    '<p style="margin-top:8px">With only two steering buttons you cannot make the constant small corrections a real '+
+    'driver makes with a wheel. The assist bleeds off yaw error when you are not steering, so the car holds its line '+
+    'through a bend. Turn it off for the full bicycle-model behaviour, where you must steer through every curve '+
+    'yourself or drift wide.</p></div>'+
     '<div class="card"><h3>DRIVING MODE</h3><div class="rowbtns">'+
       MODES.map((m,i)=>'<button class="btn '+(G.mode===i?'gold':'ghost')+' sm" data-mode="'+i+'">'+m.n+'</button>').join('')+
     '</div><p style="margin-top:8px">ECO shifts early and smoothly, SPORT holds the gears longer. SPORT+ is for the closed circuit.</p></div>'+
@@ -4896,6 +6385,7 @@ function settingsScreen(){
     '<p style="margin-top:8px">'+(Store.ok?'Progress, credits, lessons and test results are saved on this device and work with no connection.'
       :'This preview keeps progress in memory for the session. Saved to the device when the file is opened directly in a browser.')+'</p>'+
     '<div class="rowbtns"><button class="btn red" id="sReset">RESET ALL PROGRESS</button></div></div>');
+  $('#sAssist').addEventListener('click',()=>{ Save.d.laneAssist = (Save.d.laneAssist===false); Save.write(); settingsScreen(); });
   $$('[data-tr]').forEach(b=>b.addEventListener('click',()=>{ setTrans(b.dataset.tr); settingsScreen(); }));
   $$('[data-instr]').forEach(b=>b.addEventListener('click',()=>{
     Save.d.instructor = b.dataset.instr; Save.write(); settingsScreen(); }));
@@ -4916,6 +6406,85 @@ function aboutScreen(){
     'sit the Highway Code engine, an AI driving instructor that watches your telemetry, a vehicle simulation covering '+
     'manual, automatic and hybrid powertrains, a driving career from learner to motorsport, and an economy of fuel, '+
     'tollgates, servicing and fares.</p></div>'+
+    '<div class="card" style="border-color:#E3342F"><h3>BUILD 4.0.0 — WHAT WAS CORRECTED</h3>'+
+    '<p>The lateral axis of the world was inverted: the vector the road used for "right" was its exact negative. '+
+    'That one error made steering feel reversed, put the player on the right-hand carriageway and pushed oncoming '+
+    'traffic to the left. There is now a single written coordinate contract that every subsystem derives from.</p>'+
+    '<div class="kv"><span>Traffic side</span><b>LEFT (Zimbabwe)</b></div>'+
+    '<div class="kv"><span>Player lane</span><b>'+PLAYER_LANE+' · left of the centre line</b></div>'+
+    '<div class="kv"><span>Oncoming lane</span><b>'+ONCOMING_LANE+' · right of the centre line</b></div>'+
+    '<p class="note">Signs were also upside down: the canvas textures were uploaded flipped while the quad already '+
+    'placed the top edge at the top. Signs now carry a proper front face, a plain back, and a facing derived from the '+
+    'road heading rather than one hard-coded rotation.</p></div>'+
+    '<div class="card" style="border-color:#8f7bf0"><h3>STEERING GEOMETRY</h3>'+
+    '<p>The car no longer slides sideways across an abstract ribbon. It has its own heading, and steering produces a '+
+    'yaw rate from road speed, wheelbase and steering angle. Lateral movement is what follows from the angle between '+
+    'the car and the road.</p>'+
+    '<div class="kv"><span>Model</span><b>Bicycle, yaw = v/L · tan δ</b></div>'+
+    '<div class="kv"><span>Lock</span><b>Full at parking speed, a few degrees at 120</b></div>'+
+    '<div class="kv"><span>Understeer</span><b>Front washes out beyond tyre grip</b></div>'+
+    '<div class="kv"><span>Body</span><b>Pitch under power and braking, roll in a bend</b></div></div>'+
+    '<div class="card" style="border-color:#F5B324"><h3>COLLISION</h3>'+
+    '<p>Everything solid has a collider, tested cheaply along the road axis rather than in world space. Impacts scrub '+
+    'speed, shake the camera, damage the car, cost money to repair and reduce grip until repaired.</p>'+
+    '<div class="kv"><span>Light impact</span><b>4% damage · −8 safety</b></div>'+
+    '<div class="kv"><span>Collision</span><b>16% · −22 safety · 3 points</b></div>'+
+    '<div class="kv"><span>Serious</span><b>34% · −34 safety · 4 points · mission ends</b></div>'+
+    '<div class="kv"><span>Striking a pedestrian</span><b>Critical: −40 safety, 6 points, mission ends</b></div>'+
+    '<p class="note">Buildings can no longer stand in the road: every object declares a footprint and is pushed out '+
+    'past the shoulder, verge, footway and setback before it is placed.</p></div>'+
+    '<div class="card" style="border-color:#F5B324"><h3>PHASE 1 — ROAD &amp; COORDINATE SYSTEM</h3>'+
+    '<p>The reference photographs show four different road cross-sections, not one: a Harare avenue that is a dual '+
+    'carriageway with a grass median under an arch of jacarandas; a wide CBD avenue with kerbs, pavements and '+
+    'on-street parking; a narrow rural tar strip with a broken centre line, no edge lines and bare red earth running '+
+    'straight off the tar; and a mountain road with gravel shoulders and guardrails through the bends.</p>'+
+    '<p>So the carriageway is now data rather than one constant. Lane offsets stay dimensionless and resolve through '+
+    'the real half-width, which means every subsystem — markings, traffic, signs, setbacks, collision — keeps '+
+    'deriving from the single coordinate contract while the road itself changes shape.</p>'+
+    '<div class="kv"><span>Harare avenue</span><b>9.6 m each side · median · grass shoulder</b></div>'+
+    '<div class="kv"><span>Harare CBD</span><b>7.4 m · kerb · parking</b></div>'+
+    '<div class="kv"><span>Highway</span><b>3.8 m · gravel shoulder · edge lines</b></div>'+
+    '<div class="kv"><span>Rural</span><b>3.2 m · bare earth shoulder · no edge lines</b></div>'+
+    '<div class="kv"><span>Mountain</span><b>3.2 m · gravel · guardrails</b></div>'+
+    '<div class="kv"><span>Driver eye</span><b>0.36 m right of centre — right-hand drive</b></div>'+
+    '<p class="note">Eleven environment profiles are declared (Harare CBD, avenue and suburb, peri-urban, rural '+
+    'highveld, Mutare, Eastern Highlands, Bulawayo, Gweru, Hwange, Victoria Falls), each carrying its own soil '+
+    'colour, dry-grass colour, tree species and canopy shape, rock density, building palette and haze. Phase 1 '+
+    'declares that data and wires the road to it; the vegetation, rock, terrain and building systems that consume it '+
+    'are Phases 3 to 6 and are not built yet.</p></div>'+
+    '<div class="card" style="border-color:#38BDF8"><h3>PHASE 3 — TERRAIN</h3>'+
+    '<p>The road no longer floats on a flat green plane. Ground height is generated in road space, so the terrain '+
+    'meets the carriageway exactly at the shoulder and never steps away from it. Its shape comes from the '+
+    'environment profile: Harare is close to flat, the highveld rolls gently, and the Eastern Highlands road is a '+
+    'bench cut into a hillside — ground rising on one side as a red cut face, falling away on the other, with the '+
+    'hill swapping sides as you round a spur. That is what the Christmas Pass photographs show.</p>'+
+    '<div class="kv"><span>Harare</span><b>about 1 m of relief across 200 m</b></div>'+
+    '<div class="kv"><span>Rural highveld</span><b>about 4 m</b></div>'+
+    '<div class="kv"><span>Eastern Highlands</span><b>about 38 m — a hillside bench</b></div>'+
+    '<div class="kv"><span>Chunks</span><b>16 segments each, four levels of detail</b></div>'+
+    '<div class="kv"><span>Detail falls</span><b>1152 → 120 floats per segment with distance</b></div>'+
+    '<p class="note">Generation is deterministic, so a chunk rebuilds identically every time. Distant hills and '+
+    'mountain silhouettes are drawn beyond the fog where the profile calls for them, so the world does not simply '+
+    'end. Roadside objects now sit on the ground rather than on the old road plane.</p></div>'+
+    '<div class="card" style="border-color:#17A96A"><h3>ZIMBABWE-SPECIFIC WORK</h3>'+
+    '<div class="kv"><span>Traffic mix</span><b>Honda Fit, Aqua, Corolla, C-Class, Fortuner GD-6, Land Cruiser 79, '+
+      'Hiace short-base and high-roof, Nissan Caravan, AVM and Yutong coaches, haulage and tankers</b></div>'+
+    '<div class="kv"><span>Public service plates</span><b>Red characters on white</b></div>'+
+    '<div class="kv"><span>State motorcade</span><b>Outriders and a state car carrying ZIM 1</b></div>'+
+    '<div class="kv"><span>Roundabouts</span><b>Clockwise circulation, give way to traffic already on it</b></div>'+
+    '<div class="kv"><span>One-way streets</span><b>No opposing traffic; reversing against the flow is an offence</b></div>'+
+    '<div class="kv"><span>Potholes</span><b>Physical: thump, speed loss, steering pull, damage above 45 km/h</b></div>'+
+    '<div class="kv"><span>Guardrails</span><b>Solid, and they keep you on the carriageway</b></div>'+
+    '<div class="kv"><span>Chivhu</span><b>On the A4 Harare–Masvingo road — no railway line</b></div>'+
+    '<p class="note">One point needs your decision. The Highway Code supplied here classifies signs as '+
+    'A danger-warning, B regulatory, C informative, D traffic lights and E carriageway markings, and the game follows '+
+    'that. The project knowledge file lists a different scheme (A regulatory, B warning, C information, D hazard '+
+    'markers, E temporary). The two disagree, so the Highway Code has been kept as the source of truth.</p></div>'+
+    '<div class="card" style="border-color:#17A96A"><h3>TRAFFIC</h3>'+
+    '<p>Every AI vehicle has a driver personality — cautious, normal, impatient, aggressive, learner, kombi, truck, '+
+    'bus or professional — which sets its target speed, following distance, reaction time, braking rate, willingness '+
+    'to overtake and how reliably it indicates. Cars decelerate onto the stop line on a real profile, queue, overtake '+
+    'only on a broken line with the road clear, return to the left, and give way to emergency vehicles.</p></div>'+
     '<div class="card" style="border-color:#38BDF8"><h3>THE 3D ENGINE</h3>'+
     '<p>The world is drawn by a small WebGL renderer written for this game — no engine is downloaded, so the whole '+
     'simulator stays a single offline file. It gives you a perspective camera on a real curving, climbing road, a sun '+
@@ -4974,6 +6543,9 @@ function startDrive(routeId, mission){
   G.fuel = veh.tank; G.distM = 0; G.safety = 100; G.points = Save.d.points; G.score = 0;
   G.clutch = 1; G.mGear = 0; G.stalled = false; G.batt = 70; G.evMode = false; G.regen = 0;
   G.tollsPaid = 0; G.tollCount = 0; G.fines = 0; G.fuelCost = 0; G.litresUsed = 0; G.avgL100 = 0; G.refuels = 0;
+  G.damage = 0; G.collisions = 0; G.shake = 0; G.crashEnded = false; G.failCrash = false;
+  G.heading = 0; G.roadH = 0; G.yawErr = 0; G.pitch = 0; G.roll = 0; G.understeer = 0;
+  if(typeof camState === 'object') camState.init = false;
   Instructor.notes = []; lastZone = null; lastLine = null;
   if(isManual()) G.gearSel = 'N';
   G.viol = []; G.alerts = []; G.rt = {}; G.bonuses = 0; G.emerg = null; G.train = null;
@@ -4996,13 +6568,17 @@ function startDrive(routeId, mission){
     : 'Mirrors, belt, and move off when the road is clear. Keep well to the left.', 30);
   if(r.track) alertMsg('warn','🏁 CLOSED CIRCUIT','Racing rules apply here — public-road offences are not scored.');
 }
-function endTrip(finished){
+function endTrip(finished, crashed){
   if(!G.running) return;
+  G.crashEnded = !!crashed;
   G.running = false; G.paused = false; Audio2.silence();
   $('#pauseScreen').classList.remove('show');
   const rep = buildReport(), m = G.mission, ec = rep.econ, job = m && m.job;
   let earned = Math.max(0, Math.round(G.score/10)) + Math.round(rep.driver*2);
   let passed = false, note = '';
+  if(G.crashEnded){
+    note = 'The drive ended in a collision. In a real vehicle this is a reportable accident — within twenty-four hours.';
+  }
   // competency profile learns from this trip
   const cat = {}; rep.cats.forEach(c=> cat[c[0]] = c[1]);
   blendSkill('speed', cat['Speed compliance']);
@@ -5078,6 +6654,8 @@ function endTrip(finished){
       '<div class="kv"><span>Tollgates ('+ec.tollCount+')</span><b>'+money(ec.tolls)+'</b></div>'+
       '<div class="kv"><span>Fines</span><b>'+money(ec.fines)+'</b></div>'+
       '<div class="kv"><span>Service &amp; tyres fund</span><b>'+money(ec.wear)+'</b></div>'+
+      ((G.damage||0) > 0 ? '<div class="kv"><span>Panel &amp; repair ('+Math.round(G.damage)+'% damage)</span><b>'+
+        money((G.damage||0)*14)+'</b></div>' : '')+
       '<div class="kv"><span>Insurance &amp; vehicle licence</span><b>'+money(ec.cover)+'</b></div>'+
       '<div class="chev thin" style="margin:9px 0;border-radius:3px"></div>'+
       '<div class="kv"><span>'+(job?'Net earnings':'Credited')+'</span><b style="color:'+(earned>=0?'#7ff0bd':'#ff8f86')+
@@ -5100,7 +6678,13 @@ function endTrip(finished){
 }
 
 /* ------------------------------------------------- global error surface */
-const BUILD = '2.2';
+const BUILD            = '4.0.0';
+const ENGINE_VERSION   = 'ZD-RENDER-4';
+const PHYSICS_VERSION  = 'ZD-PHYSICS-2';
+const WORLD_VERSION    = 'ZD-WORLD-2';
+const GRAPHICS_VERSION = 'ZD-GFX-2';
+const COLLISION_VERSION= 'ZD-COLLIDE-1';
+const TRAFFIC_VERSION  = 'ZD-TRAFFIC-2';
 window.addEventListener('error', ev=>{
   try{
     const box = $('#alerts'); if(!box) return;
@@ -5130,6 +6714,7 @@ window.addEventListener('keydown', e=>{
   if(k==='p') togglePause();
   if(k==='q') restartEngine();
   if(k==='x'){ setHandbrake(!G.handbrake); }
+  if(k==='f9' || e.key==='F9'){ toggleDebug(); }
   if(isManual()){
     if(k==='r') setManualGear(-1);
     if(k==='n') setManualGear(0);
@@ -5192,6 +6777,7 @@ $('#btnRules').addEventListener('click', ()=>{
 $('#rulesHide').addEventListener('click', ()=>{ $('#rules').classList.add('hide');
   $('#btnRules').className = 'mini'; });
 $('#btnTrans').addEventListener('click', cycleTrans);
+$('#btnDebug').addEventListener('click', toggleDebug);
 $('#btnBelt').addEventListener('click',()=>{ G.belt=!G.belt; updateChips();
   alertMsg('info', G.belt?'🔒 BELT ON':'⚠️ BELT OFF','Safety belts are compulsory. The one exception is while reversing.'); });
 $('#btnLights').addEventListener('click',toggleLights);
@@ -5318,50 +6904,77 @@ function paintClutch(){
 
 /* ------------------------------------------------------- graphics screen */
 function graphicsScreen(){
-  const on = use3D(), q = Q(), name = qName();
-  const glOK = GLR.ok;
-  const presets = ['LOW','MEDIUM','HIGH','ULTRA'];
-  showPanel('GRAPHICS',
-    '<div class="card" style="border-color:#38BDF8"><h3>RENDERER</h3>'+
-      '<div class="rowbtns">'+
-        '<button class="btn '+(on?'blue':'ghost')+'" data-gfx="3d"'+(glOK?'':' disabled')+'>3D · WEBGL</button>'+
-        '<button class="btn '+(on?'ghost':'blue')+'" data-gfx="2d">2D · CLASSIC</button>'+
-      '</div>'+
-      '<p style="margin-top:8px">'+(glOK
-        ? 'The 3D renderer draws the world with a perspective camera, a moving sun, real headlight cones, distance fog and per-object lighting. The 2D renderer is lighter and will run on almost anything.'
-        : 'This device or browser did not give the game a WebGL context, so only the 2D renderer is available.')+'</p>'+
-      '<div class="kv"><span>WebGL available</span><b>'+(glOK?'Yes':'No')+'</b></div>'+
+  const on = use3D(), q = Q(), name = qName(), glOK = GLR.ok;
+  const row = (label, key, opts, fmt)=>
+    '<div class="kv" style="margin-top:7px"><span>'+label+'</span><b>'+(fmt?fmt(q[key]):q[key])+'</b></div>'+
+    '<div class="rowbtns">'+ opts.map(o2=>
+      '<button class="btn sm '+(String(q[key])===String(o2[1])?'blue':'ghost')+
+      '" data-gk="'+key+'" data-gv="'+o2[1]+'">'+o2[0]+'</button>').join('')+'</div>';
+  showPanel('GRAPHICS · '+GRAPHICS_VERSION,
+    '<div class="card" style="border-color:#38BDF8"><h3>RENDERER</h3><div class="rowbtns">'+
+      '<button class="btn '+(on?'blue':'ghost')+'" data-gfx="3d"'+(glOK?'':' disabled')+'>3D · WEBGL</button>'+
+      '<button class="btn '+(on?'ghost':'blue')+'" data-gfx="2d">2D · CLASSIC</button></div>'+
+      '<div class="kv"><span>WebGL</span><b>'+(glOK?'Available':'Not available')+'</b></div>'+
       '<div class="kv"><span>Frame rate</span><b>'+Math.round(GLR.fps||0)+' fps</b></div>'+
-      '<div class="kv"><span>Render scale</span><b>'+Math.round(q.res*adaptive*100)+'%</b></div>'+
-    '</div>'+
+      '<div class="kv"><span>Adaptive scale</span><b>'+Math.round(q.res*adaptive*100)+'%</b></div>'+
+      '<div class="kv"><span>Draw calls</span><b>'+(GLR.calls||0)+'</b></div></div>'+
     '<div class="card"><h3>PRESET</h3><div class="grid">'+
-      presets.map(p=>'<button class="btn '+(name===p?'gold':'ghost')+'" data-qual="'+p+'">'+p+'</button>').join('')+
+      ['LOW','MEDIUM','HIGH','ULTRA'].map(p=>'<button class="btn '+(name===p?'gold':'ghost')+
+        '" data-qual="'+p+'">'+p+'</button>').join('')+'</div>'+
+      '<p class="note" style="margin-top:8px">A preset sets everything below. Change any single item and it '+
+      'overrides the preset until you reset.</p></div>'+
+    '<div class="card"><h3>DETAIL</h3>'+
+      row('Resolution scale','res',[['50%',0.5],['75%',0.75],['90%',0.9],['100%',1]], v=>Math.round(v*100)+'%')+
+      row('Draw distance','dist',[['100 m',100],['230 m',230],['360 m',360],['600 m',600]], v=>v+' m')+
+      row('Texture quality','tex',[['Low',0],['Med',1],['High',2],['Ultra',3]], v=>['Low','Medium','High','Ultra'][v]||v)+
+      row('Building detail','build',[['Low',0],['Med',1],['High',2],['Ultra',3]], v=>['Low','Medium','High','Ultra'][v]||v)+
+      row('Vegetation','veg',[['Low',0.3],['Med',0.6],['High',1],['Ultra',1.4]], v=>Math.round(v*100)+'%')+
+      '<div class="kv" style="margin-top:7px"><span>Terrain chunks in view</span><b>'+
+        TERRAIN.stats.visible+' / '+TERRAIN.stats.total+'</b></div>'+
+      '<div class="kv"><span>Terrain reach</span><b>'+TERRAIN.reach+' m either side</b></div>'+
+      row('Traffic density','traffic',[['25%',0.25],['50%',0.5],['100%',1],['150%',1.5]], v=>Math.round(v*100)+'%')+
     '</div>'+
-      '<div class="kv"><span>Resolution</span><b>'+Math.round(q.res*100)+'%</b></div>'+
-      '<div class="kv"><span>Draw distance</span><b>'+q.dist+' m</b></div>'+
-      '<div class="kv"><span>Vegetation</span><b>'+Math.round(q.veg*100)+'%</b></div>'+
-      '<div class="kv"><span>Shadows</span><b>'+(q.shadows?'On':'Off')+'</b></div>'+
-      '<div class="kv"><span>Weather effects</span><b>'+(q.weather?'On':'Off')+'</b></div>'+
-      '<div class="kv"><span>Traffic density</span><b>'+Math.round(q.traffic*100)+'%</b></div>'+
-      '<div class="kv"><span>Motion blur</span><b>'+(q.blur?'On':'Off')+'</b></div>'+
-      '<p class="note" style="margin-top:8px">The render scale drops automatically if the frame rate falls below about '+
-      '26 fps and climbs back when there is headroom, so an older phone stays playable on MEDIUM.</p>'+
+    '<div class="card"><h3>LIGHTING &amp; EFFECTS</h3>'+
+      row('Shadows','shadows',[['Off',0],['Low',1],['High',2]], v=>['Off','Low','High'][v]||v)+
+      row('Reflections','reflect',[['Off',0],['Low',1],['High',2]], v=>['Off','Low','High'][v]||v)+
+      row('Weather','weather',[['Off',0],['Basic',1],['Full',2]], v=>['Off','Basic','Full'][v]||v)+
+      row('Anti-aliasing','aa',[['Off',false],['FXAA',true]], v=>v?'FXAA':'Off')+
+      row('Bloom','bloom',[['Off',false],['On',true]], v=>v?'On':'Off')+
+      row('Motion blur','blur',[['Off',false],['On',true]], v=>v?'On':'Off')+
+      '<div class="rowbtns" style="margin-top:10px"><button class="btn ghost sm" id="gReset">RESET TO PRESET</button></div>'+
     '</div>'+
     '<div class="card"><h3>CAMERAS</h3>'+
       CAMS.map((c,i)=>'<div class="kv"><span>'+(i+1)+'. '+c.n+'</span><b>'+
-        (c.cockpit?'Interior':(c.car?'Chase':'Body-mounted'))+'</b></div>').join('')+
-      '<p class="note" style="margin-top:6px">Cycle them with the CAM button or the C key. The chase cameras lag behind '+
-      'acceleration and lean into corners instead of being welded to the car.</p></div>'+
+        (c.cockpit?'Interior · right-hand drive':(c.car?'Chase':'Body-mounted'))+'</b></div>').join('')+
+      '<p class="note" style="margin-top:6px">The cameras respond to acceleration, braking, cornering and impacts. '+
+      'Cycle with CAM or the C key.</p></div>'+
     '<div class="card"><h3>CABIN AMBIENT LIGHT</h3><div class="rowbtns">'+
       ['#38BDF8','#8f7bf0','#17A96A','#F5B324','#E3342F','#f3f6ff'].map(c=>
         '<button class="btn sm" data-amb="'+c+'" style="background:'+c+';color:#0b1020">&nbsp;</button>').join('')+
-    '</div><p style="margin-top:8px">Shows along the dashboard at night in the cockpit views.</p></div>', showMenu);
+    '</div></div>'+
+    '<div class="card" style="border-color:#17A96A"><h3>DEVELOPER</h3>'+
+      '<div class="rowbtns"><button class="btn '+(Save.d.debug?'gold':'ghost')+'" id="gDebug">'+
+        (Save.d.debug?'DEBUG OVERLAY ON':'DEBUG OVERLAY OFF')+'</button></div>'+
+      '<p style="margin-top:8px">Shows the coordinate contract, steering geometry, physics state, traffic side and '+
+      'render statistics live on the road. Toggle in-game with F9 or the 🔧 button.</p>'+
+      '<div class="kv"><span>Build</span><b>'+BUILD+'</b></div>'+
+      '<div class="kv"><span>Renderer</span><b>'+ENGINE_VERSION+'</b></div>'+
+      '<div class="kv"><span>Physics</span><b>'+PHYSICS_VERSION+'</b></div>'+
+      '<div class="kv"><span>World</span><b>'+WORLD_VERSION+'</b></div>'+
+      '<div class="kv"><span>Collision</span><b>'+COLLISION_VERSION+'</b></div>'+
+      '<div class="kv"><span>Traffic</span><b>'+TRAFFIC_VERSION+'</b></div></div>', showMenu);
   $$('[data-gfx]').forEach(b=>b.addEventListener('click',()=>{
     Save.d.gfx3d = b.dataset.gfx === '3d'; Save.write();
     if(Save.d.gfx3d && !GLR.ok) init3D();
     resize(); graphicsScreen(); }));
   $$('[data-qual]').forEach(b=>b.addEventListener('click',()=>{
-    Save.d.quality = b.dataset.qual; Save.write(); adaptive = 1; resize(); graphicsScreen(); }));
+    Save.d.quality = b.dataset.qual; Save.d.gfx = {}; Save.write(); adaptive = 1; resize(); graphicsScreen(); }));
+  $$('[data-gk]').forEach(b=>b.addEventListener('click',()=>{
+    const v = b.dataset.gv;
+    setGfx(b.dataset.gk, v==='true'?true : v==='false'?false : parseFloat(v));
+    graphicsScreen(); }));
+  $('#gReset').addEventListener('click',()=>{ resetGfx(); graphicsScreen(); });
+  $('#gDebug').addEventListener('click',()=>{ toggleDebug(); graphicsScreen(); });
   $$('[data-amb]').forEach(b=>b.addEventListener('click',()=>{
     Save.d.ambient = b.dataset.amb; Save.write(); graphicsScreen(); }));
 }
@@ -5520,6 +7133,42 @@ function drawScene(dt){
   }
 }
 
+/* ----------------------------------------------------------- debug mode */
+function toggleDebug(){
+  Save.d.debug = !Save.d.debug; Save.write();
+  const d = $('#debug'); if(d) d.classList.toggle('show', !!Save.d.debug);
+  alertMsg('info', Save.d.debug ? '🔧 DEBUG ON' : 'DEBUG OFF',
+    Save.d.debug ? 'Coordinate contract, physics state and render statistics are now on screen. F9 to hide.' : '');
+}
+function paintDebug(){
+  if(!Save.d.debug) return;
+  const el = $('#debug'); if(!el) return;
+  const s = segAt(G.pos) || {}, p = (G.path3 && typeof pathAt==='function') ? pathAt(G.pos) : {x:0,z:0,h:0};
+  const lane = G.x < -0.34 ? 'LEFT (correct)' : G.x > 0.34 ? 'RIGHT — ONCOMING!' : 'CENTRE';
+  const deg = r=> (r*180/Math.PI).toFixed(1)+'°';
+  el.innerHTML =
+    '<b>ZIM DRIVE '+BUILD+'</b> · '+ENGINE_VERSION+' · '+PHYSICS_VERSION+'<br>'+
+    'FPS '+Math.round(GLR.fps||0)+' · scale '+Math.round(Q().res*adaptive*100)+'% · draws '+(GLR.calls||0)+'<br>'+
+    'TRAFFIC SIDE '+TRAFFIC_SIDE+' · player lane '+PLAYER_LANE+' · oncoming '+ONCOMING_LANE+'<br>'+
+    'PLAYER LANE: <b>'+lane+'</b> · lateral x '+G.x.toFixed(3)+' ('+(G.x*HW_M).toFixed(2)+' m)<br>'+
+    'world x '+p.x.toFixed(1)+' z '+p.z.toFixed(1)+' · road heading '+deg(p.h)+'<br>'+
+    'car heading '+deg(G.heading||0)+' · yaw err '+deg(G.yawErr||0)+' · yaw rate '+deg(G.yawRate||0)+'/s<br>'+
+    'steer input '+(G.steer||0).toFixed(2)+' → '+((G.steer||0)>0.05?'RIGHT':(G.steer||0)<-0.05?'LEFT':'centred')+
+      ' · understeer '+Math.round((G.understeer||0)*100)+'%<br>'+
+    'pitch '+deg(G.pitch||0)+' roll '+deg(G.roll||0)+' · accel '+(G.accelMs||0).toFixed(2)+' m/s²<br>'+
+    'speed '+Math.abs(kmh()).toFixed(1)+' km/h · gear '+(isManual()?('M'+G.mGear+' cl '+G.clutch.toFixed(2)):('D'+G.gear))+
+      ' · rpm '+Math.round(G.rpm)+'<br>'+
+    'segment '+(s.i||0)+'/'+G.segs.length+' · zone '+(s.zone||'—')+' · limit '+(s.limit||0)+' · line '+(s.line||'—')+'<br>'+
+    'terrain chunks '+TERRAIN.stats.visible+'/'+TERRAIN.stats.total+' · rebuilds '+TERRAIN.stats.built+
+      ' · reach '+TERRAIN.reach+' m<br>'+
+    'road y '+(G.path3?pathAt(G.pos).y.toFixed(2):'—')+' · terrain y at 20 m left '+
+      (G.path3?getTerrainHeight(G.pos,-20).toFixed(2):'—')+' · right '+
+      (G.path3?getTerrainHeight(G.pos,20).toFixed(2):'—')+'<br>'+
+    'traffic '+(G.cars||[]).length+' · hazards '+(G.hazards||[]).length+' · colliders '+((G.colliders||[]).length)+
+      ' · impacts '+(G.collisions||0)+' · damage '+Math.round(G.damage||0)+'%<br>'+
+    'physics '+(G.stalled?'STALLED':G.running?'running':'idle')+' · grip '+grip().toFixed(2);
+}
+
 /* --------------------------------------------------------------- HUD DOM */
 let hudT = 0;
 function updateHUD(dt){
@@ -5614,7 +7263,8 @@ function frameBody(now){
     updateTrans(dt); updatePhysics(dt);
     updateJunctions(dt); spawnCars(); updateCars(dt); updateHazards(dt);
     maybeSpawnEmergency(dt); updateRules(dt);
-    updateStations(dt); Instructor.update(dt);
+    updateStations(dt); updateCollisions(dt); Instructor.update(dt);
+    if(G.failCrash){ G.failCrash = false; endTrip(false, true); return; }
     // indicator tick
     if(G.indL||G.indR){ blinkT += dt; if(blinkT>0.5){ blinkT=0; Audio2.tick(); } }
     Audio2.engine(G.rpm, G.throttle, Math.abs(kmh()));
@@ -5625,7 +7275,7 @@ function frameBody(now){
     if(G.distM >= G.targetM){ endTrip(true); }
     if(G.learnerPause){ togglePauseForLearner(); }
     $('#padStart').classList.toggle('show', !!G.stalled);
-    paintClutch();
+    paintClutch(); paintDebug();
     drawScene(dt); drawCluster();
   } else if(G.screen==='drive' && G.running){
     drawScene(dt); drawCluster();
@@ -5655,6 +7305,7 @@ function boot(){
 window.addEventListener('load', ()=>{ resize(); });
 document.addEventListener('pointerdown', ()=>Audio2.resume(), {once:true});
 boot();
+
 
 </script>
 </body>
