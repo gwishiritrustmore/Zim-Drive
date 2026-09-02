@@ -439,6 +439,8 @@ const SIGNS = [
   meaning:'Wet or loose surface. Braking distance grows sharply, so double your following gap.'},
  {code:'A_WORKS', cls:'A', shape:'tri', glyph:'works', name:'ROAD WORKS AHEAD',
   meaning:'Men and machinery on the road. Obey temporary limits and flagmen.'},
+ {code:'A_ROCKS', cls:'A', shape:'tri', glyph:'rocks', name:'BEWARE OF FALLING ROCKS',
+  meaning:'Granite above the road may shed rock onto the carriageway. Slow down, keep well clear of the cut face, and watch the surface for fallen stone.'},
  {code:'A_DESCENT', cls:'A', shape:'tri', glyph:'hill', name:'STEEP DESCENT AHEAD',
   meaning:'Long downhill — select a lower gear so the brakes do not overheat. Common on the Mutare road.'},
  {code:'A_ROBOT', cls:'A', shape:'rect', glyph:'robot', name:'ROBOT AHEAD',
@@ -885,22 +887,22 @@ const ROUTES = {
  avondale:{profiles:{cbd:'HARARE_CBD', suburb:'HARARE_SUBURB', school:'HARARE_SUBURB'}, name:'AVONDALE SCHOOL RUN', from:'Harare CBD', to:'Avondale', road:'Suburban roads',
    hour:7.2, wx:'sunny', plan:[['cbd',80],['suburb',220],['school',90],['suburb',160]]},
  norton_night:{profiles:{cbd:'HARARE_CBD', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD', town:'GWERU'}, name:'HARARE → NORTON', from:'Harare', to:'Norton', road:'A5 west',
-   hour:19.5, wx:'night', plan:[['cbd',70],['suburb',130],['peri',110],['highway',330],['town',110]]},
- mutare_a3:{profiles:{suburb:'HARARE_SUBURB', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD', rural:'RURAL_HIGHVELD', mountain:'EASTERN_HIGHLANDS', town:'MUTARE'}, name:'HARARE → MUTARE', from:'Harare', to:'Mutare', road:'A3 east · 263 km (scaled)',
+   hour:19.5, wx:'night', landmark:'statue', plan:[['cbd',70],['suburb',130],['peri',110],['highway',330],['town',110]]},
+ mutare_a3:{profiles:{suburb:'HARARE_SUBURB', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD', rural:'RURAL_HIGHVELD', mountain:'EASTERN_HIGHLANDS', town:'MUTARE'}, name:'HARARE → MUTARE', from:'Harare', to:'Mutare', road:'A3 east · 263 km (scaled)', landmark:'bridge',
    hour:9.5, wx:'sunny', plan:[['suburb',110],['peri',110],['highway',280],['rural',200],['mountain',320],['town',120]]},
  chivhu_rural:{profiles:{town:'GWERU', rural:'RURAL_HIGHVELD', gravel:'RURAL_HIGHVELD'}, name:'CATTLE COUNTRY', from:'Chivhu', to:'Masvingo road', road:'A4 Harare–Masvingo · rural',
    hour:16.8, wx:'sunny', noRail:true,
    plan:[['town',90],['rural',420],['gravel',180],['rural',260]]},
  bulawayo_grid:{profiles:{cbd:'BULAWAYO', suburb:'BULAWAYO'}, name:'BULAWAYO GRID', from:'Bulawayo CBD', to:'Bulawayo CBD', road:'Wide urban grid',
-   hour:11, wx:'sunny', plan:[['cbd',140],['suburb',180],['cbd',140],['suburb',150]]},
- gweru_rain:{profiles:{town:'GWERU', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD'}, name:'GWERU → KWEKWE', from:'Gweru', to:'Kwekwe', road:'A5 · wet',
-   hour:14, wx:'rain', plan:[['town',90],['peri',110],['highway',380],['town',110]]},
+   hour:11, wx:'sunny', landmark:'statue', plan:[['cbd',140],['suburb',180],['cbd',140],['suburb',150]]},
+ gweru_rain:{profiles:{town:'GWERU', peri:'PERI_URBAN', highway:'RURAL_HIGHVELD'}, name:'GWERU → KWEKWE', from:'Gweru', to:'Kwekwe', road:'A5 · wet', landmark:'statue',
+   hour:14, wx:'storm', season:'wet', plan:[['town',90],['peri',110],['highway',380],['town',110]]},
  vicfalls:{profiles:{town:'VICTORIA_FALLS', highway:'HWANGE', rural:'HWANGE'}, name:'HWANGE → VICTORIA FALLS', from:'Hwange', to:'Victoria Falls', road:'A8 north-west',
-   hour:15.5, wx:'sunny', plan:[['town',80],['highway',420],['rural',260],['town',140]]},
+   hour:15.5, wx:'sunny', landmark:'falls', plan:[['town',80],['highway',420],['rural',260],['town',140]]},
  emergency:{name:'EMERGENCY CHALLENGE', from:'Harare', to:'Parirenyatwa', road:'Urban arterials',
    hour:13, wx:'sunny', plan:[['cbd',120],['suburb',200],['cbd',160]], emergency:true},
  mutare_hills:{profiles:{town:'MUTARE', mountain:'EASTERN_HIGHLANDS', rural:'EASTERN_HIGHLANDS'}, name:'MUTARE HIGHLANDS', from:'Mutare', to:'Vumba road', road:'Mountain road',
-   hour:10, wx:'mist', plan:[['town',80],['mountain',420],['rural',200]]},
+   hour:10, wx:'mist', landmark:'bridge', plan:[['town',80],['mountain',420],['rural',200]]},
  circuit:{name:'CLOSED CIRCUIT', from:'Motorsport park', to:'Finish line', road:'Closed track — racing rules',
    hour:12, wx:'sunny', track:true, plan:[['track',900]]}
 };
@@ -1102,6 +1104,7 @@ const G = {
   clock:8*3600, wx:'sunny', fuel:42, distM:0, t:0,
   clutch:0, eng:0, mForce:0, clutchWear:0, handbrake:false, mGear:0, stalled:false, batt:70, evMode:false, regen:0,
   heading:0, roadH:0, yawErr:0, yawRate:0, pitch:0, roll:0, accelMs:0, understeer:0,
+  lightning:0, thunderIn:0, season:'wet',
   damage:0, shake:0, collisions:0,
   stations:[], tollsPaid:0, tollCount:0, fines:0, fuelCost:0, litresUsed:0, avgL100:0, refuels:0,
   cars:[], hazards:[], junctions:[], emerg:null, train:null,
@@ -1155,13 +1158,59 @@ const FOOTWAY_W      = 0.23;
 const MIN_SETBACK    = 0.18;
 const RESERVE_EDGE   = ROAD_EDGE + SHOULDER_W + VERGE_W + FOOTWAY_W + MIN_SETBACK;
 /* half-width of each object in METRES, used to compute its footprint */
+/* every building style's footprint comes from its own spec, so the setback
+   system and the collision system can never disagree with what is drawn */
+function buildFootprint(kind){
+  return sp=>{
+    const S = (typeof BUILD_SPECS !== 'undefined') && BUILD_SPECS[kind];
+    if(!S) return 4;
+    const i = sp && sp.i || 0;
+    const w = S.w[0] + (S.w[1]-S.w[0])*segHash(i, 302);
+    const d = S.d[0] + (S.d[1]-S.d[0])*segHash(i, 303);
+    return Math.max(w, d)*0.5 + 0.8;
+  };
+}
 const FOOTPRINT = {
-  tower:  sp=> (7 + (sp.h||3))*0.5 + 1.0,
-  house:  ()=> 3.5 + 0.6,
-  shop:   ()=> 4.0 + 0.6,
-  shack:  ()=> 2.0 + 0.4,
-  hut:    ()=> 2.6 + 0.4,
-  kopje:  sp=> (sp.h||2)*2.4*0.8 + 0.6,
+  tower:  buildFootprint('tower'),
+  office: buildFootprint('office'),
+  colonial: buildFootprint('colonial'),
+  retail: buildFootprint('retail'),
+  parking: buildFootprint('parking'),
+  house:  buildFootprint('house'),
+  shop:   buildFootprint('shop'),
+  tuckshop: buildFootprint('tuckshop'),
+  workshop: buildFootprint('workshop'),
+  school: buildFootprint('school'),
+  church: buildFootprint('church'),
+  farm:   buildFootprint('farm'),
+  lodge:  buildFootprint('lodge'),
+  shack:  buildFootprint('shack'),
+  hut:    buildFootprint('hut'),
+  civic:  buildFootprint('civic'),
+  clock:  buildFootprint('clock'),
+  cyltower: buildFootprint('cyltower'),
+  station: buildFootprint('station'),
+  stall:  ()=> 2.4,
+  rank:   ()=> 3.4,
+  roadworks: ()=> 0,          // it stands ON the shoulder on purpose
+  parked: ()=> 2.6,
+  schoolkids: ()=> 0,
+  herder: ()=> 0,
+  welcome:  ()=> 0.5,
+  bridge:   ()=> 0,        // you drive over it
+  conical:  ()=> 6.0,
+  falls:    ()=> 0,        // it is across the gorge
+  elephants:()=> 0,        // they move, and are handled as a hazard
+  statue:   ()=> 1.6,
+  hoarding: ()=> 0.4,
+  destboard: ()=> 0.4,
+  wall:   ()=> 0.5,
+  gate:   ()=> 2.2,
+  kopje:  sp=>{
+    const s0 = (sp.h||2)*1.15;
+    const spread = {kopje:2.1, field:5.2, outcrop:3.2, boulder:1.3, balanced:2.4, hill:8.0, cut:2.6};
+    return s0 * (spread[sp.form] || 2.1) + 0.5;
+  },
   fuelstn:()=> 8.0,
   toll:   ()=> 0,                  // the gantry spans the road on purpose
   tree:   ()=> 1.3, msasa:()=>1.5, pine:()=>1.1,
@@ -1175,7 +1224,11 @@ function placeOffset(off, kind, extra){
   if(off === '' || off === undefined || off === null) return off;
   const fp = FOOTPRINT[kind];
   if(!fp) return off;
-  const halfW = fp(extra||{}) / HW_M;                 // metres → lane units
+  const w0 = fp(extra||{});
+  // a zero footprint means the object belongs exactly where it was placed —
+  // a bridge deck on the centreline, the falls across the gorge
+  if(w0 === 0) return off;
+  const halfW = w0 / HW_M;                            // metres → lane units
   const side = off < 0 ? -1 : 1;
   const needed = RESERVE_EDGE + halfW;
   return Math.abs(off) < needed ? side*needed : off;
@@ -1202,15 +1255,23 @@ function oneWay(a, b){
    road is the natural coordinate system here. Vehicles and animals get an
    oriented box tested along the same two axes. Nothing uses mesh collision.
    ===================================================================== */
+const BUILDING_KINDS = ['tower','office','colonial','retail','parking','house','shop',
+  'tuckshop','workshop','school','church','farm','lodge','shack','hut',
+  'civic','clock','cyltower','station'];
 const SOLID = {
-  tower:1, house:1, shop:1, shack:1, hut:1, kopje:1, pole:1, sign:1, board:1,
-  robot:1, pedsig:1, chevronPost:1, fuelstn:1
+  kopje:1, pole:1, sign:1, board:1, robot:1, pedsig:1, chevronPost:1, fuelstn:1,
+  wall:1, gate:1, hoarding:1, destboard:1, stall:1, rank:1, parked:1,
+  welcome:1, conical:1, statue:1
 };
+BUILDING_KINDS.forEach(k=> SOLID[k] = 1);
 const COLLIDER_CAT = {
-  tower:'building', house:'building', shop:'building', shack:'building', hut:'building',
   kopje:'rock', pole:'pole', sign:'sign', board:'sign', robot:'pole', pedsig:'pole',
+  wall:'wall', gate:'wall', hoarding:'pole', destboard:'pole',
+  stall:'stall', rank:'shelter', parked:'vehicle',
+  welcome:'sign', conical:'monument', statue:'monument',
   chevronPost:'post', fuelstn:'building'
 };
+BUILDING_KINDS.forEach(k=> COLLIDER_CAT[k] = 'building');
 function registerCollider(i, obj, off, kind, extra){
   if(!SOLID[kind] || off === '' || off === undefined || off === null) return;
   const fp = FOOTPRINT[kind];
@@ -1301,7 +1362,10 @@ function updateCollisions(dt){
     if(c.hitAt && G.t - c.hitAt < 3) continue;
     c.hitAt = G.t;
     const names = {building:'a building', rock:'a granite outcrop', pole:'a pole',
-                   sign:'a road sign', post:'a chevron post', object:'a roadside object'};
+                   sign:'a road sign', post:'a chevron post', wall:'a boundary wall',
+                   stall:'a vendor\u2019s stall', shelter:'a kombi shelter',
+                   monument:'a monument',
+                   vehicle:'a parked vehicle', object:'a roadside object'};
     impact('static', spd, 'you struck '+(names[c.cat]||'an obstacle'),
       'Keep to your own lane and off the verge — everything beyond the shoulder is solid.');
     // pushed back onto the road
@@ -1377,7 +1441,8 @@ function setLine(from, to, kind){
 }
 
 function buildRoute(id){
-  G.colliders = []; G.rails = []; G.circles = [];
+  G.colliders = []; G.rails = []; G.circles = []; G.landmarkPlaced = null;
+  G.welcomed = null; G.bigLandmark = null; G.lmTries = 0;
   const r = ROUTES[id];
   G.segs = []; G.junctions = []; G.cars = []; G.hazards = []; G.routeId = id; G.route = r;
   r.plan.forEach(stage=>{
@@ -1437,18 +1502,239 @@ function scatterVegetation(a, b, zone){
       sp(i,'', side*(ROAD_EDGE + 2.6 + segHash(i,79)*3.4), speciesFor(prof, i+13),
          {h:h*(0.7+segHash(i,80)*0.5), rot:segHash(i,86)*6.28});
   }
-  // granite boulders and outcrops where the profile calls for them
+  placeBuildings(prof, a, b, zone);
+  // granite, in the six formations the reference sheet names
   if(prof.rock > 0.05){
     for(let i=a+8;i<b-8;i++){
       if(segHash(i,81) > prof.rock*0.055) continue;
       const side = segHash(i,82) < 0.5 ? -1 : 1;
-      sp(i,'', side*(ROAD_EDGE + 1.4 + segHash(i,83)*3.6), 'kopje',
-         {h: 0.8 + segHash(i,84)*(prof.rock*3.2), rot:segHash(i,85)*6.28});
+      const r = segHash(i,90);
+      // what kind of granite this is depends on how far off the road it sits
+      let form, off, h;
+      if(r < 0.30){ form='kopje';    off = ROAD_EDGE + 3.4 + segHash(i,91)*5;  h = 1.6 + segHash(i,92)*prof.rock*3.4; }
+      else if(r < 0.48){ form='field'; off = ROAD_EDGE + 4.0 + segHash(i,91)*6; h = 0.9 + segHash(i,92)*1.6; }
+      else if(r < 0.64){ form='outcrop'; off = ROAD_EDGE + 1.3 + segHash(i,91)*1.8; h = 0.8 + segHash(i,92)*1.3; }
+      else if(r < 0.76){ form='boulder'; off = ROAD_EDGE + 1.1 + segHash(i,91)*2.4; h = 0.7 + segHash(i,92)*1.4; }
+      else if(r < 0.86){ form='balanced'; off = ROAD_EDGE + 3.0 + segHash(i,91)*4; h = 1.2 + segHash(i,92)*1.6; }
+      else if(r < 0.95 && prof.rock > 0.5){ form='hill'; off = ROAD_EDGE + 11 + segHash(i,91)*10; h = 2.5 + segHash(i,92)*3; }
+      else { form='cut'; off = ROAD_EDGE + 0.9; h = 1.2 + segHash(i,92)*1.8; }
+      sp(i,'', side*off, 'kopje', {form:form, h:h, i:i, rot:segHash(i,85)*6.28});
+      if(form==='cut') sp(i-16,'A_ROCKS', -ROAD_EDGE, 'sign');
     }
   }
 }
+/* ---------------------------------------------------------------------
+   BUILDING PLACEMENT
+   Density, style mix and height range all come from the environment profile.
+   Placement runs off segHash so a stretch of road looks the same every time
+   it is generated, but no two stretches look alike: the setback, rotation,
+   colour, height and even which side of the road a building stands on all
+   vary. Blocks are laid in runs with gaps between, rather than one building
+   every N segments, which is what makes a street read as a street.
+   --------------------------------------------------------------------- */
+function placeBuildings(prof, a, b, zone){
+  const dens = prof.buildDens || 0;
+  if(dens <= 0.02) return;
+  const styles = prof.buildStyles || ['house'];
+  const urban = dens > 0.8;
+  const spacing = Math.max(3, Math.round(9 / Math.max(0.2, dens)));
+  // one landmark per built-up stretch, so a town is recognisable
+  let landmarkAt = -1;
+  if(urban && (b-a) > 60 && !G.landmarkPlaced){
+    const LM = {HARARE_CBD:'cyltower', BULAWAYO:'civic', GWERU:'clock', MUTARE:'clock'};
+    for(const k in ENV_PROFILES) if(ENV_PROFILES[k] === prof && LM[k]){
+      landmarkAt = a + 24 + Math.floor(segHash(a, 360)*Math.max(1,(b-a-50)));
+      var landmarkKind = LM[k];
+    }
+  }
+  for(let i=a+6;i<b-6;i++){
+    if(i === landmarkAt){
+      const side = segHash(i,361) < 0.5 ? -1 : 1;
+      sp(i,'', side*ROAD_EDGE, landmarkKind, {i:i});
+      G.landmarkPlaced = landmarkKind;
+      i += 10;
+      continue;
+    }
+    // blocks come in runs with gaps, not one every N
+    const run = 0.5 + 0.5*Math.sin(i*0.09 + segHash(a,350)*7);
+    if(segHash(i,351) > dens*0.30*(0.3 + run)) continue;
+    if(i % spacing > spacing*0.7) continue;
+    const side = segHash(i,352) < 0.5 ? -1 : 1;
+    const kind = styles[Math.floor(segHash(i,353)*styles.length) % styles.length];
+    if(kind === 'wall' || kind === 'gate') continue;          // placed with their house
+    sp(i,'', side*ROAD_EDGE, kind, {i:i});
+    // a suburban house gets a boundary wall and a gate on the road frontage
+    if((kind === 'house' || kind === 'lodge') && styles.indexOf('wall') >= 0){
+      sp(i-2,'', side*ROAD_EDGE, 'wall', {i:i-2});
+      if(segHash(i,354) < 0.45) sp(i+1,'', side*ROAD_EDGE, 'gate', {i:i+1});
+      sp(i+3,'', side*ROAD_EDGE, 'wall', {i:i+3});
+    }
+    // and in a CBD the opposite frontage is usually built up too
+    if(urban && segHash(i,355) < 0.55){
+      const k2 = styles[Math.floor(segHash(i,356)*styles.length) % styles.length];
+      if(k2 !== 'wall' && k2 !== 'gate') sp(i+1,'', -side*ROAD_EDGE, k2, {i:i+1000});
+    }
+  }
+  // roadside hoardings, and green destination boards on the approaches
+  if(dens > 0.4){
+    for(let i=a+20;i<b-10;i+=1){
+      if(segHash(i,357) > 0.012) continue;
+      sp(i,'', (segHash(i,358)<0.5?-1:1)*ROAD_EDGE, 'hoarding',
+         {i:i, c:['#1b6f8f','#7a2f6f','#0f6b3a','#b4441f'][Math.floor(segHash(i,359)*4)%4]});
+    }
+  }
+}
+/* real road distances from Harare, so a board reads as a board and not as
+   decoration. Taken from the rocks reference sheet, which signs them itself. */
+const DEST_KM = {
+  'HARARE':0, 'NORTON':40, 'CHIVHU':144, 'MARONDERA':74, 'CHINHOYI':115,
+  'KADOMA':141, 'KWEKWE':215, 'GWERU':275, 'MASVINGO':292, 'MUTARE':263,
+  'BULAWAYO':439, 'HWANGE':780, 'VICTORIA FALLS':876
+};
+const DEST_NAMES = Object.keys(DEST_KM);
+function placeDestBoards(a, b){
+  // a stacked green board every kilometre or so on the open road
+  for(let i=a+30;i<b-20;i+=Math.round(120 + segHash(i,370)*90)){
+    const n = 2 + Math.floor(segHash(i,371)*4);
+    const dest = [], used = {};
+    for(let k=0;k<n;k++){
+      const name = DEST_NAMES[Math.floor(segHash(i+k*3,372)*DEST_NAMES.length)%DEST_NAMES.length];
+      if(used[name] || DEST_KM[name] === 0) continue;
+      used[name] = 1;
+      dest.push({name:name, km:DEST_KM[name], ahead: segHash(i+k,373) < 0.5});
+    }
+    if(dest.length) sp(i,'', -ROAD_EDGE, 'destboard', {i:i, dest:dest});
+  }
+}
+/* ---------------------------------------------------------------------
+   ROADSIDE LIFE
+   Density comes from the profile's pedDens. Everything clusters: markets
+   sit in runs of three or four stalls, commuters gather at a rank, cars
+   park in a line. A single figure every N segments never reads as a place
+   where people actually are.
+   --------------------------------------------------------------------- */
+function placeRoadsideLife(prof, a, b, zone){
+  const d = prof.pedDens || 0.4;
+  const urban = zone==='cbd' || zone==='town' || zone==='peri';
+  for(let i=a+8;i<b-8;i++){
+    // ---- markets: a run of stalls, wherever people gather
+    if(segHash(i,450) < d*0.022 && (urban || zone==='rural' || zone==='suburb')){
+      const side = segHash(i,451) < 0.5 ? -1 : 1;
+      const n = 2 + Math.floor(segHash(i,452)*3);
+      for(let k=0;k<n;k++){
+        const j = i + k*2;
+        if(j >= b-4) break;
+        sp(j,'', side*ROAD_EDGE, 'stall', {i:j});
+      }
+      // shoppers drawn to it
+      if(segHash(i,453) < 0.7) sp(i+1,'', side*(ROAD_EDGE+0.9), 'vendor', {i:i+1});
+      i += n*2 + 3;
+      continue;
+    }
+    // ---- kombi ranks and bus stops, on the built-up stretches
+    if(urban && segHash(i,454) < d*0.012){
+      sp(i,'', -ROAD_EDGE, 'rank', {i:i, kombi: segHash(i,455) < 0.6});
+      i += 8; continue;
+    }
+    // ---- cars parked nose-in along a CBD kerb
+    if(zone==='cbd' && segHash(i,456) < 0.045){
+      sp(i,'', (segHash(i,457)<0.5?-1:1)*ROAD_EDGE, 'parked', {i:i});
+      i += 4; continue;
+    }
+    // ---- schoolchildren, in uniform, near a school
+    if((zone==='school' || zone==='suburb' || zone==='rural') && segHash(i,458) < d*0.014){
+      sp(i,'', (segHash(i,459)<0.5?-1:1)*(ROAD_EDGE+0.4), 'schoolkids', {i:i});
+      i += 5; continue;
+    }
+    // ---- a herd boy and his cattle on the open road
+    if((zone==='rural' || zone==='gravel') && segHash(i,460) < 0.010){
+      sp(i,'', (segHash(i,461)<0.5?-1:1)*(ROAD_EDGE+0.8), 'herder', {i:i});
+      i += 6; continue;
+    }
+    // ---- roadworks, occasionally, on any tarred road
+    if(zone!=='gravel' && zone!=='track' && segHash(i,462) < 0.0035){
+      sp(i,'', (segHash(i,463)<0.5?-1:1)*(ROAD_EDGE*0.55), 'roadworks', {i:i});
+      sp(i-14,'A_WORKS', -ROAD_EDGE, 'sign');
+      i += 10; continue;
+    }
+    // ---- and simply people walking, more of them where the profile says so
+    if(segHash(i,464) < d*0.030)
+      sp(i,'', (segHash(i,465)<0.5?-1:1)*(ROAD_EDGE+0.3+segHash(i,466)*1.4), 'vendor', {i:i});
+  }
+}
+/* ---------------------------------------------------------------------
+   LANDMARKS
+   A WELCOME TO board stands at the entrance to every built-up stretch, the
+   way every town reference board opens. Each region also carries one thing
+   that identifies it without a caption, placed once per route.
+   --------------------------------------------------------------------- */
+const REGION_LANDMARK = {
+  VICTORIA_FALLS:   ['falls','bridge'],
+  HWANGE:           ['elephants'],
+  EASTERN_HIGHLANDS:['bridge'],
+  MUTARE:           ['statue'],
+  BULAWAYO:         ['statue'],
+  RURAL_HIGHVELD:   ['conical'],
+  GWERU:            ['statue'],
+  HARARE_CBD:       ['statue'],
+  HARARE_AVENUE:    ['statue'],
+  HARARE_SUBURB:    ['statue'],
+  PERI_URBAN:       ['statue']
+};
+function placeLandmarks(prof, a, b, zone){
+  // the town gateway
+  const named = TOWN_NAMES[zone];
+  if(named && (b-a) > 34 && !G.welcomed){
+    // the route knows where it is; fall back to the zone's town list only if not
+    const r = G.route || {};
+    const tidy = n=> String(n||'').toUpperCase().replace(/ (CBD|ROAD|CENTRE)$/,'').trim();
+    const fromName = tidy(r.from);
+    const toName = tidy(r.to);
+    const known = Object.values(TOWN_NAMES).reduce((a2,b2)=>a2.concat(b2), []);
+    let town = known.includes(fromName) ? fromName
+             : known.includes(toName)   ? toName
+             : (DEST_KM[fromName] !== undefined ? fromName
+             : (DEST_KM[toName] !== undefined ? toName
+             : named[Math.floor(segHash(a, 620)*named.length) % named.length]));
+    sp(a + 6, '', -ROAD_EDGE, 'welcome', {i:a+6, town:town});
+    G.welcomed = town;
+  }
+  // the regional landmark
+  if(G.bigLandmark) return;
+  let key = null;
+  for(const k in ENV_PROFILES) if(ENV_PROFILES[k] === prof) key = k;
+  const named2 = !!(G.route && G.route.landmark);
+  let opts = named2 ? [G.route.landmark] : REGION_LANDMARK[key];
+  // a route that names its landmark always gets it; an incidental one is chancy,
+  // but every route should end up carrying something, so the chance rises as the
+  // route runs on without one
+  if(!opts) return;
+  G.lmTries = (G.lmTries||0) + 1;
+  if((b-a) < (named2 ? 34 : 50)) return;
+  if(!named2 && G.lmTries < 3 && segHash(a, 621) > 0.75) return;
+  const kind = opts[Math.floor(segHash(a, 622)*opts.length) % opts.length];
+  const at = a + 30 + Math.floor(segHash(a, 623)*Math.max(1, b-a-60));
+  if(kind === 'bridge'){
+    sp(at, '', 0, 'bridge', {i:at, span: 70 + segHash(at,624)*70, rise: 20 + segHash(at,625)*16,
+      c: segHash(at,626) < 0.5 ? '#8d99ad' : '#6b7a8c'});
+  } else if(kind === 'falls'){
+    sp(at, '', -(ROAD_EDGE + 16), 'falls', {i:at});
+    sp(at - 26, 'C_DEST', -ROAD_EDGE, 'board');
+  } else if(kind === 'elephants'){
+    sp(at, '', -(ROAD_EDGE + 9), 'elephants', {i:at});
+    sp(at - 20, 'A_CATTLE', -ROAD_EDGE, 'sign');
+  } else if(kind === 'conical'){
+    sp(at, '', -(ROAD_EDGE + 20), 'conical', {i:at});
+  } else if(kind === 'statue'){
+    sp(at, '', -(ROAD_EDGE + 3), 'statue', {i:at});
+  }
+  G.bigLandmark = kind;
+}
 function decorate(zone, a, b){
   const z = ZONE[zone];
+  placeLandmarks(profileFor({zone:zone}), a, b, zone);
+  placeRoadsideLife(profileFor({zone:zone}), a, b, zone);
+  if(zone==='highway' || zone==='rural' || zone==='mountain') placeDestBoards(a,b);
   // ----- speed-limit signage
   if(zone==='school'){ setLimit(a,b,40,'B_40'); sp(a-8,'A_CHILDREN',-1.3,'sign'); sp(a+30,'A_PED',-1.3,'sign'); }
   else if(zone==='highway') sp(a+6,'B_120',-1.3,'sign');
@@ -1462,20 +1748,13 @@ function decorate(zone, a, b){
     const s = G.segs[i], side = ()=> Math.random()<0.5?-1:1;
     // ----- scenery
     if(zone==='cbd'){
-      if(i%3===0){ sp(i,'', -1.9-Math.random()*0.7,'tower',{h:rnd(2.4,6.2),c:pick(['#3d4a72','#4a5a86','#2f3a5c','#556289','#41527d'])}); }
-      if(i%3===1){ sp(i,'', 1.9+Math.random()*0.7,'tower',{h:rnd(2.4,6.2),c:pick(['#3d4a72','#4a5a86','#2f3a5c','#556289'])}); }
       if(i%18===0) sp(i,'', (i%36===0?-1.45:1.45), 'pole');
       if(i%26===7) sp(i,'','', 'vendor',{off:side()*1.35});
     } else if(zone==='suburb'||zone==='school'){
-      if(i%5===0) sp(i,'',-1.7,'house',{c:pick(['#e8e4d5','#f2d6a8','#dfe7ef','#f0cfc0'])});
-      if(i%5===2) sp(i,'',1.7,'house',{c:pick(['#e8e4d5','#f2d6a8','#dfe7ef'])});
       if(zone==='school'&&i%9===0) sp(i,'',side()*1.2,'kid');
     } else if(zone==='town'){
-      if(i%4===0) sp(i,'',-1.75,'shop',{c:pick(['#f0b429','#2ea36a','#e05a4a','#3f7bd0'])});
-      if(i%4===2) sp(i,'',1.75,'shop',{c:pick(['#f0b429','#2ea36a','#e05a4a'])});
       if(i%17===3) sp(i,'',side()*1.3,'vendor');
     } else if(zone==='peri'){
-      if(i%6===0) sp(i,'',side()*1.6,'shack');
       if(i%23===4) sp(i,'',-1.3,'vendor');
     } else if(zone==='highway'){
       if(i%90===40) sp(i,'C_DEST',-1.6,'board');
@@ -1483,9 +1762,7 @@ function decorate(zone, a, b){
     } else if(zone==='rural'){
     // Zimbabwe is a cattle country: guarantee livestock on a rural stretch
     for(let i=a+40;i<b-20;i+=rnd(150,240)|0) hazard(i|0, Math.random()<0.7?'cattle':'goats');
-      if(i%31===5) sp(i,'',side()*1.9,'hut');
     } else if(zone==='gravel'){
-      if(i%40===9) sp(i,'',side()*1.8,'hut');
     } else if(zone==='mountain'){
       if(i%22===3) sp(i,'','', 'chevronPost',{off:1.25});
     } else if(zone==='track'){
@@ -1641,7 +1918,8 @@ function limitHere(){ const s = segAt(G.pos); return s?s.limit:60; }
 function grip(){
   let g = 1 - Math.min(0.22, (G.damage||0)/450);   // a damaged car handles worse
 
-  if(G.wx==='rain') g = 0.68; else if(G.wx==='mist') g = 0.88;
+  if(G.wx==='rain') g = 0.68; else if(G.wx==='storm') g = 0.58;
+  else if(G.wx==='mist') g = 0.88; else if(G.wx==='cloudy') g = 0.96;
   const s = segAt(G.pos); if(s && s.zone==='gravel') g *= 0.8;
   if(Math.abs(G.x)>1) g *= 0.62;
   return g;
@@ -2084,6 +2362,24 @@ function updateJunctions(dt){
 }
 
 /* -------------------------------------------------------- hazards update */
+/* the highveld storm: a strike lights the whole world for a moment, and the
+   thunder follows it at the speed of sound */
+function updateStorm(dt){
+  G.lightning = Math.max(0, (G.lightning||0) - dt*4.5);
+  if(G.wx !== 'storm') { G.thunderIn = 0; return; }
+  if(Math.random() < 0.09*dt*Q().weather){
+    G.lightning = 1;
+    G.thunderIn = 0.4 + Math.random()*3.2;      // distance, as a delay
+    G.strikeAt = G.t;
+  }
+  if(G.thunderIn > 0){
+    G.thunderIn -= dt;
+    if(G.thunderIn <= 0){
+      Audio2.blip(52, 0.9, 'sawtooth', 0.16);
+      Audio2.blip(38, 1.4, 'triangle', 0.12);
+    }
+  }
+}
 function updateHazards(dt){
   G.hazards.forEach(h=>{
     const d = dz(G.pos, h.z)/WPM;
@@ -3243,6 +3539,20 @@ const GLR = {
     gl.useProgram(this.prog);
     this.calls = 0;
   },
+  /* render into a rectangle of the canvas — used for the mirrors */
+  beginViewport(x, y, w, h, sky){
+    const gl = this.gl;
+    gl.enable(gl.SCISSOR_TEST);
+    gl.viewport(x, y, w, h);
+    gl.scissor(x, y, w, h);
+    gl.clearColor(sky[0], sky[1], sky[2], 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  },
+  endViewport(W, H){
+    const gl = this.gl;
+    gl.disable(gl.SCISSOR_TEST);
+    gl.viewport(0, 0, W, H);
+  },
   setCamera(proj, view, eye){
     const gl = this.gl;
     gl.uniformMatrix4fv(this.loc.uProj, false, proj);
@@ -3358,6 +3668,8 @@ const XSECT = {
   // lanes per direction · median half-width (m) · shoulder kind · edge lines · kerb
   avenue:  {lanes:2, half:LANE_W,      median:2.6, shoulder:'grass',  edge:true,  kerb:true,  parking:false},
   cbd:     {lanes:2, half:LANE_W*1.05, median:0,   shoulder:'urban',  edge:false, kerb:true,  parking:true },
+  // Bulawayo's avenues were laid out wide enough to turn a full span of oxen
+  bulawayo:{lanes:2, half:LANE_W*1.35, median:1.8, shoulder:'urban',  edge:false, kerb:true,  parking:true },
   suburb:  {lanes:1, half:LANE_W*0.98, median:0,   shoulder:'grass',  edge:true,  kerb:true,  parking:true },
   town:    {lanes:1, half:LANE_W,      median:0,   shoulder:'gravel', edge:true,  kerb:true,  parking:true },
   peri:    {lanes:1, half:LANE_W*0.96, median:0,   shoulder:'dirt',   edge:false, kerb:false, parking:false},
@@ -3461,10 +3773,18 @@ const ENV_PROFILES = {
 /* which profile a route section belongs to; Phase 1 maps by zone, later
    phases will let a route name its profile explicitly */
 const ZONE_TO_PROFILE = {
-  cbd:'HARARE_CBD', avenue:'HARARE_AVENUE', suburb:'HARARE_SUBURB', school:'HARARE_SUBURB',
+  cbd:'HARARE_CBD', bulawayo:'BULAWAYO', avenue:'HARARE_AVENUE', suburb:'HARARE_SUBURB', school:'HARARE_SUBURB',
   peri:'PERI_URBAN', town:'GWERU', highway:'RURAL_HIGHVELD', rural:'RURAL_HIGHVELD',
   gravel:'RURAL_HIGHVELD', mountain:'EASTERN_HIGHLANDS', track:'HARARE_CBD'
 };
+/* Zimbabwe has two seasons and they look completely different. The dry
+   season browns the grass, bares the msasa and puts the jacaranda into
+   flower; the wet season greens everything and leaves water lying. */
+function seasonOf(){
+  if(Save.d.season && Save.d.season !== 'auto') return Save.d.season;
+  return (G.route && G.route.season) || (G.wx === 'rain' || G.wx === 'storm' ? 'wet' : 'dry');
+}
+function seasonGreen(){ return seasonOf() === 'wet' ? 1 : 0; }
 function envProfile(pos){
   const s = segAt(pos === undefined ? G.pos : pos);
   if(!s) return ENV_PROFILES.HARARE_SUBURB;
@@ -3558,18 +3878,104 @@ function sunVector(){
   const L = Math.hypot(v[0],v[1],v[2]);
   return {dir:new Float32Array([v[0]/L, v[1]/L, v[2]/L]), day:day, el:el, hrs:hrs};
 }
+/* =====================================================================
+   PHASE 9 — LIGHTING AND WEATHER
+   ---------------------------------------------------------------------
+   Every reference board carries a sunset panel, and they are all the same
+   sunset: a low orange sun over granite or msasa, the sky graded from deep
+   blue overhead down through gold to a hot band at the horizon. The night
+   panels are equally consistent — warm sodium street lighting, lit windows,
+   and a deep blue rather than black sky.
+
+   So the day now runs through named phases rather than three cases, each
+   with its own sun colour, ambient colour, sky and shadow length:
+
+     04:50  night        deep blue, no sun
+     05:20  dawn         the sky reddens before the sun clears the horizon
+     06:10  sunrise      low hot sun, long shadows
+     07:30  morning      cool and bright
+     10:00  day          full sun overhead
+     15:30  afternoon    warming
+     16:45  golden hour  the light every board photographs
+     17:50  sunset       hot orange, very long shadows
+     18:40  blue hour    the sun gone, the sky still lit
+     19:20  night
+   ===================================================================== */
+const SKY_PHASES = [
+  {t:0.0,  n:'NIGHT',       sky:'#070c1c', sun:'#2f3c66', amb:'#141b33', horizon:'#0d1428'},
+  {t:4.6,  n:'NIGHT',       sky:'#070c1c', sun:'#2f3c66', amb:'#141b33', horizon:'#0d1428'},
+  {t:4.9,  n:'DAWN',        sky:'#141c3a', sun:'#3f4670', amb:'#1d2440', horizon:'#3c2c45'},
+  {t:5.4,  n:'DAWN',        sky:'#2a3358', sun:'#6b5f7a', amb:'#2e3350', horizon:'#8a4a52'},
+  {t:5.9,  n:'SUNRISE',     sky:'#55608f', sun:'#c08a72', amb:'#4d4c68', horizon:'#c96a49'},
+  {t:6.3,  n:'SUNRISE',     sky:'#7d84b8', sun:'#ffb877', amb:'#6a6280', horizon:'#f08a4b'},
+  {t:6.9,  n:'MORNING',     sky:'#86a6d2', sun:'#ffd9ad', amb:'#75809a', horizon:'#e0b98c'},
+  {t:7.6,  n:'MORNING',     sky:'#8fc0ea', sun:'#ffe9c8', amb:'#7c869e', horizon:'#c9dcf0'},
+  {t:9.5,  n:'DAY',         sky:'#7fb4e8', sun:'#fff3d8', amb:'#7d879e', horizon:'#bcd8f2'},
+  {t:15.0, n:'AFTERNOON',   sky:'#7cb0e2', sun:'#ffeec4', amb:'#7e8496', horizon:'#d6ddea'},
+  {t:16.6, n:'GOLDEN HOUR', sky:'#8fb0d4', sun:'#ffd08a', amb:'#7d7284', horizon:'#f0a45c'},
+  {t:17.7, n:'SUNSET',      sky:'#6f7fae', sun:'#ff9a52', amb:'#6a5a72', horizon:'#e85f2e'},
+  {t:18.2, n:'SUNSET',      sky:'#4e5a92', sun:'#b87455', amb:'#514a68', horizon:'#c05540'},
+  {t:18.7, n:'BLUE HOUR',   sky:'#2f3f70', sun:'#5a5f92', amb:'#333a5c', horizon:'#8a5570'},
+  {t:19.1, n:'BLUE HOUR',   sky:'#1a2447', sun:'#434a78', amb:'#232a48', horizon:'#4a3550'},
+  {t:19.8, n:'NIGHT',       sky:'#070c1c', sun:'#2f3c66', amb:'#141b33', horizon:'#0d1428'},
+  {t:24.0, n:'NIGHT',       sky:'#070c1c', sun:'#2f3c66', amb:'#141b33', horizon:'#0d1428'}
+];
+function skyPhase(hrs){
+  for(let i=SKY_PHASES.length-1;i>=0;i--){
+    if(hrs >= SKY_PHASES[i].t){
+      const a = SKY_PHASES[i], b = SKY_PHASES[Math.min(SKY_PHASES.length-1, i+1)];
+      const span = Math.max(0.01, b.t - a.t);
+      const f = Math.max(0, Math.min(1, (hrs - a.t)/span));
+      // ease so the transitions are not linear ramps
+      const e = f*f*(3-2*f);
+      return {
+        name: e < 0.5 ? a.n : b.n,
+        sky: mixHex(a.sky, b.sky, e),
+        sun: mixHex(a.sun, b.sun, e),
+        amb: mixHex(a.amb, b.amb, e),
+        horizon: mixHex(a.horizon, b.horizon, e)
+      };
+    }
+  }
+  return SKY_PHASES[0];
+}
 function envColours(){
   const s = sunVector(), hrs = s.hrs, wx = G.wx;
-  let sky, sun, amb, fogCol;
-  const dawn = hrs > 5.2 && hrs < 7.2, dusk = hrs > 17.2 && hrs < 19.2;
-  if(!s.day){ sky = '#0a1024'; sun = '#3b4a7a'; amb = '#1b2340'; }
-  else if(dawn){ sky = '#f7a86b'; sun = '#ffd3a1'; amb = '#6b6480'; }
-  else if(dusk){ sky = '#e8794a'; sun = '#ffc08a'; amb = '#5e5570'; }
-  else { sky = '#7fb4e8'; sun = '#fff3d8'; amb = '#7d879e'; }
-  if(wx === 'rain'){ sky = s.day ? '#5a6577' : '#0b1120'; sun = s.day ? '#98a2b4' : '#2a3350'; amb = s.day?'#6a7386':'#182038'; }
-  if(wx === 'mist'){ sky = s.day ? '#b9c2cc' : '#1a2130'; sun = s.day ? '#d5dbe2' : '#2e3750'; amb = s.day?'#9aa3ae':'#242c42'; }
-  fogCol = sky;
-  return {sky:C3(sky), sun:C3(sun), amb:C3(amb), fog:C3(fogCol), day:s.day, dir:s.dir, hrs:hrs};
+  const P = skyPhase(hrs);
+  let sky = P.sky, sun = P.sun, amb = P.amb, horizon = P.horizon;
+
+  // ---- weather grades the whole palette rather than replacing it
+  if(wx === 'rain'){
+    // heavy cloud: flat, cool, and much darker
+    sky = mixHex(sky, s.day ? '#5a6577' : '#080d1a', 0.72);
+    sun = mixHex(sun, s.day ? '#9aa4b6' : '#232b46', 0.75);
+    amb = mixHex(amb, s.day ? '#697285' : '#161d33', 0.6);
+    horizon = mixHex(horizon, '#68717f', 0.7);
+  } else if(wx === 'mist'){
+    sky = mixHex(sky, s.day ? '#c2cad4' : '#1c2331', 0.78);
+    sun = mixHex(sun, s.day ? '#dbe0e6' : '#2b3450', 0.7);
+    amb = mixHex(amb, s.day ? '#9ea6b0' : '#232b40', 0.65);
+    horizon = mixHex(horizon, s.day ? '#cdd4dc' : '#1e2536', 0.85);
+  } else if(wx === 'storm'){
+    // a highveld thunderstorm: near-black cloud, and the lightning below
+    sky = mixHex(sky, '#2a2f3d', 0.85);
+    sun = mixHex(sun, '#3e4553', 0.85);
+    amb = mixHex(amb, '#242a38', 0.7);
+    horizon = mixHex(horizon, '#3a4150', 0.8);
+    if(G.lightning > 0){
+      const f = Math.min(1, G.lightning);
+      sky = mixHex(sky, '#c9d6ee', f*0.8);
+      sun = mixHex(sun, '#e8eeff', f*0.9);
+      amb = mixHex(amb, '#8f9ab8', f*0.85);
+    }
+  }
+  return {sky:C3(sky), sun:C3(sun), amb:C3(amb), fog:C3(horizon), horizon:horizon,
+          day:s.day, dir:s.dir, hrs:hrs, phase:P.name, el:s.el};
+}
+/* how long a shadow is: short at noon, long at the ends of the day */
+function shadowLength(){
+  const s = sunVector();
+  return Math.max(0.4, Math.min(6, 1/Math.max(0.16, s.el)));
 }
 
 /* --------------------------------------------------------- cameras ---- */
@@ -3578,17 +3984,35 @@ function envColours(){
    metres to the right of centre, resolved through the road-right vector so it
    stays correct through every bend. */
 const DRIVER_OFFSET = 0.36;
+/* The camera reference sheet names ten angles. These are those, plus the
+   passenger seat, and each behaves the way the sheet's caption describes. */
 const CAMS = [
-  {n:'COCKPIT',        h:1.17, back:0.05, fov:62, look:9,  cockpit:true, eye:DRIVER_OFFSET},
-  {n:'PASSENGER',      h:1.17, back:0.05, fov:62, look:9,  cockpit:true, eye:-DRIVER_OFFSET},
+  {n:'COCKPIT',        h:1.17, back:0.05,  fov:62, look:9,  cockpit:true, eye:DRIVER_OFFSET},
+  {n:'PASSENGER',      h:1.17, back:0.05,  fov:62, look:9,  cockpit:true, eye:-DRIVER_OFFSET},
   {n:'DASHBOARD',      h:1.24, back:-0.35, fov:56, look:12, cockpit:true, eye:DRIVER_OFFSET*0.7},
-  {n:'BONNET',         h:1.05, back:-1.7, fov:64, look:14},
-  {n:'BUMPER',         h:0.42, back:-2.3, fov:70, look:16},
-  {n:'THIRD — NEAR',   h:1.9,  back:6.0,  fov:60, look:14, car:true},
-  {n:'THIRD — FAR',    h:3.1,  back:10.5, fov:56, look:18, car:true},
-  {n:'CINEMATIC',      h:2.4,  back:9.0,  fov:44, look:22, car:true, cine:true}
+  {n:'HOOD',           h:1.05, back:-1.7,  fov:64, look:14},
+  {n:'BUMPER',         h:0.42, back:-2.3,  fov:70, look:16},
+  {n:'WIDE ANGLE',     h:1.6,  back:3.0,   fov:88, look:12, car:true},
+  {n:'CHASE',          h:1.9,  back:6.0,   fov:60, look:14, car:true},
+  {n:'CHASE — FAR',    h:3.1,  back:10.5,  fov:56, look:18, car:true},
+  {n:'CINEMATIC',      h:2.4,  back:9.0,   fov:44, look:22, car:true, cine:true},
+  // looking back at the car from in front of it
+  {n:'FRONT',          h:1.5,  back:-12.0, fov:52, look:-26, car:true, faceBack:true},
+  // straight down, for parking and lane position
+  {n:'TOP',            h:26.0, back:0.6,   fov:42, look:0.5, car:true, top:true},
+  // high and behind, the drone shot the sheet shows over a roundabout
+  {n:'DRONE',          h:38.0, back:34.0,  fov:40, look:14, car:true, drone:true},
+  // a fixed pole camera at the roadside that the car drives past
+  {n:'TRAFFIC CAM',    h:7.5,  back:0,     fov:38, look:0,  fixed:true},
+  // close on the front wheel
+  {n:'WHEEL',          h:0.55, back:2.4,   fov:34, look:2.0, car:true, wheel:true}
 ];
-const camState = {x:0, y:0, z:0, lx:0, ly:0, lz:0, lag:0, roll:0, init:false};
+const camState = {x:0, y:0, z:0, lx:0, ly:0, lz:0, lag:0, roll:0, init:false, zoom:1};
+function camZoom(step){
+  camState.zoom = Math.max(0.55, Math.min(2.2, (camState.zoom||1) + step));
+  G.camT = G.t;
+  alertMsg('info','🔍 ZOOM '+Math.round(camState.zoom*100)+'%', '');
+}
 
 function cameraFor(dt){
   const c = CAMS[G.cam % CAMS.length];
@@ -3602,20 +4026,38 @@ function cameraFor(dt){
   camState.lastV = G.speed;
   camState.lag += ((Math.max(-6,Math.min(6,accel))*0.09) - camState.lag) * Math.min(1, dt*2.2);
   camState.roll += (((G.roll||0)*0.8 - G.steer*0.02) - camState.roll) * Math.min(1, dt*3);
-  let back = c.back + (c.car ? camState.lag : 0);
+  const zoom = camState.zoom || 1;
+  let back = (c.back + (c.car ? camState.lag : 0)) * (c.top || c.drone ? 1 : zoom);
   if(c.cine) back += Math.sin(G.t*0.13)*3.2;
-  const side = c.cine ? Math.sin(G.t*0.09)*2.6 : 0;
+  let side = c.cine ? Math.sin(G.t*0.09)*2.6 : 0;
+  if(c.drone) side = Math.sin(G.t*0.06)*8;
+  if(c.wheel) side = -1.05;                    // out at the driver's front wheel
   const rr = roadRight(p.h);
   // the driver sits to the right in a right-hand-drive vehicle
   const eyeOff = c.eye || 0;
   const tx = p.x - fwd.x*back + rr.x*(side + eyeOff);
   const tz = p.z - fwd.z*back + rr.z*(side + eyeOff);
-  const ty = carY + c.h + (c.cine ? 1.2 + Math.sin(G.t*0.11) : 0);
-  if(!camState.init){ camState.x = tx; camState.y = ty; camState.z = tz; camState.init = true; }
+  let ty = carY + c.h*(c.top || c.drone ? zoom : 1) + (c.cine ? 1.2 + Math.sin(G.t*0.11) : 0);
+  // a fixed roadside camera stays put and watches you go by
+  if(c.fixed){
+    if(camState.poleZ === undefined || Math.abs(dz(camState.poleZ, G.pos))/WPM > 130)
+      camState.poleZ = loopZ(G.pos + 95*WPM);
+    const pp = roadPoint(camState.poleZ, -1.9, 0);
+    camState.x = pp.x; camState.y = pp.y + c.h; camState.z = pp.z; camState.init = true;
+    const carAt = roadPoint(G.pos, G.x, 0);
+    return {cam:c, eye:[camState.x, camState.y, camState.z],
+            at:[carAt.x, carAt.y + 0.8, carAt.z], p:p};
+  }
+  if(!camState.init || camState.was !== G.cam){
+    camState.x = tx; camState.y = ty; camState.z = tz; camState.init = true; camState.was = G.cam;
+  }
   const k = c.car ? Math.min(1, dt*6) : 1;
   camState.x += (tx-camState.x)*k; camState.y += (ty-camState.y)*k; camState.z += (tz-camState.z)*k;
   // aim well down the road so bends read early
-  const ahead = roadPoint(G.pos + c.look*WPM, G.x*0.55, 0);
+  let ahead = roadPoint(G.pos + c.look*WPM, G.x*0.55, 0);
+  if(c.top){ ahead = roadPoint(G.pos + 0.4*WPM, G.x, 0); ahead.y = p.y; }
+  if(c.wheel){ ahead = roadPoint(G.pos + 2*WPM, G.x - 0.28, 0); }
+  if(c.faceBack){ ahead = roadPoint(G.pos, G.x, 0); }     // looking back at the car
   // impact and surface shake
   camState.shake = Math.max(0, (camState.shake||0) - dt*2.2);
   if(G.shake > 0){ camState.shake = Math.max(camState.shake, G.shake); G.shake = Math.max(0, G.shake - dt*2.2); }
@@ -3672,7 +4114,7 @@ function profileFor(seg){
 
 function drawRoad(first, count){
   const g = GLR, q = Q(), env = envColours(), night = !env.day;
-  const wet = G.wx==='rain' ? 1 : G.wx==='mist' ? 0.4 : 0;
+  const wet = (G.wx==='rain'||G.wx==='storm') ? 1 : G.wx==='mist' ? 0.4 : 0;
   const n = G.segs.length;
   const LY = 0.012;
   /* a strip between two lateral offsets, at a height above the tar */
@@ -3702,7 +4144,7 @@ function drawRoad(first, count){
   byKey((s,i)=>{
     const p = profileFor(s);
     // wet season is green, dry season shows the grass going over
-    const dry = (G.wx === 'sunny' && (G.clock/3600) > 8) ? 1 : 0;
+    const dry = seasonOf() === 'dry' ? 1 : 0;
     return (s.dark ? ZONE[s.zone].grass : ZONE[s.zone].grass2) + '|' + (dry?p.grassDry:'');
   }, (key, list)=>{
     const parts = key.split('|');
@@ -4176,6 +4618,9 @@ function updateTerrainLOD(){
     const d = Math.abs(dz(G.pos, mid)) / WPM;
     ch.dist = d;
     if(d > q.dist * 1.6){ ch.vis = false; return; }
+    // and cull chunks outside the view, which on a bend is most of them
+    const mp = roadPoint(mid, 0, 0);
+    if(!inView(mp.x, mp.z, TERRAIN.reach*0.6)){ ch.vis = false; return; }
     ch.vis = true; visible++;
     let lod = 3;
     if(d < TERRAIN.lodDist[0]) lod = 0;
@@ -4194,8 +4639,9 @@ function drawTerrain(){
   const here = segAt(G.pos) || G.segs[0];
   const prof = profileFor(here);
   const z = ZONE[here.zone];
-  const dry = (G.wx === 'sunny' && (G.clock/3600) > 8);
-  const grassCol = dry ? mixHex(z.grass2, prof.grassDry, 0.55) : z.grass2;
+  // the ground takes its colour from the season, not just the hour
+  const dryness = seasonOf() === 'dry' ? 1 : 0.15;
+  const grassCol = mixHex(z.grass2, prof.grassDry, 0.62*dryness);
   // ground cover
   g.beginSoup();
   let any = false;
@@ -4445,33 +4891,919 @@ function drawTree3D(x,y,z, hgt, kind, opt){
   }
 }
 
+/* =====================================================================
+   PHASE 6 — BUILDINGS
+   ---------------------------------------------------------------------
+   The Harare CBD photograph is not a glass skyline. It is a mix of two- to
+   fourteen-storey blocks in cream, beige and grey, a couple of green
+   mirror-glass towers with stepped crowns, flat roofs carrying green water
+   tanks, painted billboards on blank side walls, corrugated iron over the
+   older buildings, and a small ochre clocktower. The suburbs are single
+   houses behind boundary walls with gates. The countryside is tuckshops,
+   a school, a church and farm sheds.
+
+   So a building is assembled from parts — plinth, storeys, parapet or roof,
+   then details — with every dimension, colour and feature drawn from a
+   deterministic hash of its position. Nothing repeats exactly.
+   ===================================================================== */
+
+const BUILD_SPECS = {
+  //            width      depth     storeys   roof        features
+  tower:    {w:[9,16],  d:[8,14],  st:[6,20], roof:'parapet', glass:0.55, tanks:1, board:0.3},
+  office:   {w:[10,18], d:[9,15],  st:[3,8],  roof:'parapet', glass:0.35, tanks:1, board:0.35},
+  colonial: {w:[11,17], d:[9,13],  st:[2,3],  roof:'pitch',   glass:0.1,  tanks:0, board:0.15, verandah:1},
+  retail:   {w:[9,15],  d:[8,12],  st:[1,3],  roof:'parapet', glass:0.3,  tanks:1, board:0.55, canopy:1},
+  parking:  {w:[12,18], d:[11,16], st:[3,6],  roof:'open',    glass:0,    tanks:0, board:0.2},
+  shop:     {w:[7,11],  d:[6,9],   st:[1,2],  roof:'parapet', glass:0.25, tanks:1, board:0.6,  canopy:1},
+  house:    {w:[7,11],  d:[6,10],  st:[1,2],  roof:'pitch',   glass:0.12, tanks:1, board:0},
+  tuckshop: {w:[4,6],   d:[3.5,5], st:[1,1],  roof:'iron',    glass:0.1,  tanks:0, board:0.7,  canopy:1},
+  workshop: {w:[8,13],  d:[7,11],  st:[1,1],  roof:'iron',    glass:0.08, tanks:0, board:0.3},
+  school:   {w:[16,24], d:[7,9],   st:[1,1],  roof:'iron',    glass:0.3,  tanks:1, board:0.1,  verandah:1},
+  church:   {w:[8,12],  d:[12,17], st:[1,1],  roof:'pitch',   glass:0.15, tanks:0, board:0,    spire:1},
+  farm:     {w:[10,16], d:[8,12],  st:[1,1],  roof:'iron',    glass:0.05, tanks:1, board:0},
+  lodge:    {w:[12,18], d:[8,11],  st:[1,2],  roof:'thatch',  glass:0.25, tanks:1, board:0.1,  verandah:1},
+  shack:    {w:[3.5,5], d:[3,4],   st:[1,1],  roof:'iron',    glass:0.05, tanks:0, board:0.3},
+  hut:      {w:[4,5.5], d:[4,5.5], st:[1,1],  roof:'thatch',  glass:0,    tanks:0, board:0, round:1},
+  /* landmarks — one per town, so a place is recognisable before the HUD names it */
+  // the City Hall: two storeys, columned portico, pitched roof — not a dome
+  civic:    {w:[20,26], d:[12,16], st:[2,3],  roof:'pitch',   glass:0.1,  tanks:0, board:0, portico:1},
+  // the railway station clocktower, with its red pitched roof
+  station:  {w:[22,30], d:[10,14], st:[1,2],  roof:'pitch',   glass:0.2,  tanks:0, board:0, spire:1, clock:1, verandah:1},
+  clock:    {w:[14,18], d:[10,13], st:[2,3],  roof:'pitch',   glass:0.12, tanks:0, board:0, spire:1, clock:1},
+  cyltower: {w:[13,17], d:[13,17], st:[12,22],roof:'crown',   glass:0.75, tanks:0, board:0, round:1}
+};
+const STOREY_H = 3.1;
+
+/* deterministic parameters for the building at segment i */
+function buildingParams(kind, i, prof){
+  const S = BUILD_SPECS[kind] || BUILD_SPECS.house;
+  const r = k=> segHash(i, 300+k);
+  const lerp = (a,b,t)=> a + (b-a)*t;
+  const pal = (prof && prof.palette) || ['#e8e4d5','#dfe7ef','#cdb99a'];
+  const storeys = Math.round(lerp(S.st[0], S.st[1], Math.pow(r(1), 1.6)));
+  return {
+    spec:S, kind:kind,
+    w: lerp(S.w[0], S.w[1], r(2)),
+    d: lerp(S.d[0], S.d[1], r(3)),
+    storeys: storeys,
+    h: kind==='hut' ? 2.4 : storeys*STOREY_H*(kind==='workshop'||kind==='farm'?1.5:1),
+    col: pal[Math.floor(r(4)*pal.length) % pal.length],
+    glass: r(5) < S.glass,
+    tank: S.tanks && r(6) < 0.55,
+    tanks: 1 + Math.floor(r(12)*2),
+    board: r(7) < (S.board||0),
+    boardCol: ['#2f6fd0','#17A96A','#E3342F','#F5B324','#f2f5ff'][Math.floor(r(8)*5)%5],
+    rot: (r(9)-0.5)*0.22,                     // buildings are not perfectly square to the road
+    setback: r(10)*3.2,                       // and they are not all on the same line
+    trim: r(11) < 0.4 ? '#8d94a6' : '#c9cfd8',
+    roofCol: ['#8a3b2e','#7d4437','#6b6f7c','#5a4232'][Math.floor(r(13)*4)%4]
+  };
+}
+
+/* ------------------------------------------------------------ parts -- */
+function partStoreys(x,y,z,h, P, night){
+  if(P.spec.round && P.kind !== 'hut'){
+    // a cylindrical tower, like the round one on the Harare skyline
+    GLR.draw('cyl', M4.trs(x, y, z, h, P.w, P.h, P.d),
+      C3(P.glass ? '#4a5f6a' : P.col),
+      {spec: P.glass?0.7:0.2, emissive: night ? new Float32Array([0.07,0.075,0.08]) : null});
+    if(Q().build >= 1) for(let st=1;st<P.storeys;st+=2)
+      GLR.draw('cyl', M4.trs(x, y+st*STOREY_H, z, h, P.w*1.012, 0.16, P.d*1.012),
+        C3(P.trim), {spec:0.3});
+    return;
+  }
+  if(P.glass){
+    // mirror glass: the tower reads as a single reflective slab
+    boxAt(x,y,z, P.w, P.h, P.d, h, C3('#3f6f5e'),
+      {spec:0.85, emissive: night ? new Float32Array([0.05,0.09,0.08]) : null});
+    // mullion bands so it does not look like a plain block
+    for(let s=1;s<P.storeys;s+=2){
+      boxAt(x, y+s*STOREY_H, z, P.w*1.006, 0.16, P.d*1.006, h, C3('#2b4a40'), {spec:0.5});
+    }
+  } else {
+    boxAt(x,y,z, P.w, P.h, P.d, h, C3(P.col),
+      {tex:GLR.facadeTex(P.storeys>2?'tower':'house'), spec:0.12,
+       emissive: night ? new Float32Array([0.09,0.085,0.07]) : null});
+    // floor bands pick out the storeys
+    if(P.storeys > 2 && Q().build >= 1){
+      for(let s=1;s<P.storeys;s+=2)
+        boxAt(x, y+s*STOREY_H, z, P.w*1.01, 0.12, P.d*1.01, h, C3(P.trim), {spec:0.2});
+    }
+  }
+}
+function partRoof(x,y,z,h, P, night){
+  const top = y + P.h;
+  switch(P.spec.roof){
+    case 'parapet':
+      boxAt(x, top, z, P.w*1.03, 0.55, P.d*1.03, h, C3(P.trim), {spec:0.15});
+      if(P.kind==='tower' && P.storeys > 10){
+        // the stepped crown of the green-glass towers on Samora Machel
+        boxAt(x, top+0.55, z, P.w*0.72, STOREY_H*1.2, P.d*0.72, h, C3(P.glass?'#3f6f5e':P.col), {spec:0.6});
+        boxAt(x, top+0.55+STOREY_H*1.2, z, P.w*0.42, STOREY_H*0.9, P.d*0.42, h, C3(P.trim), {spec:0.4});
+      }
+      break;
+    case 'pitch':
+      GLR.draw('cone', M4.trs(x, top, z, h+Math.PI/4, P.w*1.02, P.w*0.30, P.d*1.35),
+        C3(P.roofCol), {spec:0.06});
+      break;
+    case 'iron':
+      // corrugated sheet, laid at a shallow single pitch
+      GLR.draw('box', M4.trs(x, top, z, h, P.w*1.08, 0.14, P.d*1.12, 0.10),
+        C3('#8d8d92'), {spec:0.42});
+      break;
+    case 'thatch':
+      GLR.draw('cone', M4.trs(x, top, z, h, P.w*1.25, P.w*0.42, P.d*1.25),
+        C3('#8a6a3a'), {spec:0.03});
+      break;
+    case 'open':
+      boxAt(x, top, z, P.w*1.02, 0.4, P.d*1.02, h, C3(P.trim), {spec:0.15});
+      break;
+    case 'dome': {
+      // the domed colonial city hall — Bulawayo's signature silhouette
+      boxAt(x, top, z, P.w*1.03, 0.7, P.d*1.03, h, C3(P.trim), {spec:0.15});
+      const dw = Math.min(P.w, P.d)*0.42;
+      GLR.draw('cyl', M4.trs(x, top+0.7, z, h, dw*1.15, 1.6, dw*1.15), C3(P.col), {spec:0.2});
+      GLR.draw('sphere', M4.trs(x, top+2.3-dw*0.5, z, h, dw*2, dw*2, dw*2),
+        C3('#5a6270'), {spec:0.45});
+      boxAt(x, top+2.3+dw*0.55, z, 0.3, 2.4, 0.3, h, C3('#c9cfd8'), {spec:0.4});
+      break; }
+    case 'crown': {
+      // the stepped, faceted crown of the cylindrical CBD tower
+      GLR.draw('cyl', M4.trs(x, top, z, h, P.w*0.92, 1.4, P.d*0.92), C3(P.trim), {spec:0.3});
+      GLR.draw('cyl', M4.trs(x, top+1.4, z, h, P.w*0.66, 3.0, P.d*0.66), C3('#3f6f5e'), {spec:0.6});
+      GLR.draw('cone', M4.trs(x, top+4.4, z, h, P.w*0.6, 3.4, P.d*0.6), C3(P.trim), {spec:0.35});
+      break; }
+  }
+}
+function partWaterTanks(x,y,z,h, P){
+  // green plastic tanks on the roof — as Zimbabwean a detail as there is
+  if(!P.tank || Q().build < 1) return;
+  const top = y + P.h + 0.6;
+  const rr = roadRight(h);
+  for(let k=0;k<P.tanks;k++){
+    const o = (k - (P.tanks-1)/2) * 1.5;
+    cylAt(x + rr.x*o, top, z + rr.z*o, 0.62, 1.15, h, C3('#2f7d43'), {spec:0.2});
+  }
+}
+function partBillboard(x,y,z,h, P, night){
+  // a painted advertisement on a blank side wall, or a hoarding on the roof
+  if(!P.board || Q().build < 1) return;
+  const ff = roadFwd(h);
+  const face = P.h > 8 ? P.h*0.45 : P.h*0.6;
+  boxAt(x - ff.x*(P.d*0.5+0.06), y + P.h*0.35, z - ff.z*(P.d*0.5+0.06),
+    P.w*0.62, face, 0.12, h, C3(P.boardCol),
+    {spec:0.1, emissive: night ? C3s(P.boardCol, 0.20) : null});
+}
+function partCanopy(x,y,z,h, P, night){
+  if(!P.spec.canopy) return;
+  const ff = roadFwd(h);
+  boxAt(x - ff.x*(P.d*0.5+0.9), y + 2.7, z - ff.z*(P.d*0.5+0.9),
+    P.w*0.95, 0.16, 1.9, h, C3('#2f3a5c'), {spec:0.2});
+  // shopfront glow at night
+  if(night) boxAt(x - ff.x*(P.d*0.5+0.05), y+0.4, z - ff.z*(P.d*0.5+0.05),
+    P.w*0.8, 2.1, 0.1, h, C3('#ffd259'), {emissive:C3s('#ffd259',0.5)});
+}
+function partPortico(x,y,z,h, P, night){
+  if(!P.spec.portico) return;
+  const ff = roadFwd(h), rr = roadRight(h);
+  const dOut = P.d*0.5 + 2.2;
+  const w = P.w*0.5;
+  // pediment over a colonnade
+  boxAt(x - ff.x*dOut, y + P.h*0.92, z - ff.z*dOut, w, 0.7, 4.6, h, C3(P.trim), {spec:0.18});
+  GLR.draw('cone', M4.trs(x - ff.x*dOut, y + P.h*0.92 + 0.7, z - ff.z*dOut, h+Math.PI/4,
+    w*1.05, 1.5, 4.8), C3(P.roofCol), {spec:0.06});
+  const n = 6;
+  for(let k=0;k<n;k++){
+    const o = (k/(n-1) - 0.5) * w * 0.86;
+    const cxp = x - ff.x*dOut + rr.x*o, czp = z - ff.z*dOut + rr.z*o;
+    cylAt(cxp, y, czp, 0.34, P.h*0.92, h, C3(P.trim), {spec:0.16});
+    cylAt(cxp, y + P.h*0.92 - 0.35, czp, 0.44, 0.35, h, C3(P.trim), {spec:0.16});
+  }
+  // steps up to it
+  for(let k=0;k<3;k++)
+    boxAt(x - ff.x*(dOut+1.6+k*0.5), y - 0.1 - k*0.22, z - ff.z*(dOut+1.6+k*0.5),
+      w*0.9, 0.24, 1.0, h, C3('#c9cfd8'), {spec:0.1});
+}
+function partVerandah(x,y,z,h, P){
+  if(!P.spec.verandah || Q().build < 1) return;
+  const ff = roadFwd(h), rr = roadRight(h);
+  const dOut = P.d*0.5 + 1.6;
+  boxAt(x - ff.x*dOut, y + 2.9, z - ff.z*dOut, P.w, 0.18, 3.4, h, C3(P.trim), {spec:0.12});
+  const n = Math.max(3, Math.round(P.w/3));
+  for(let k=0;k<n;k++){
+    const o = (k/(n-1) - 0.5) * P.w * 0.9;
+    boxAt(x - ff.x*(dOut+1.4) + rr.x*o, y, z - ff.z*(dOut+1.4) + rr.z*o,
+      0.26, 2.9, 0.26, h, C3(P.trim), {spec:0.12});
+  }
+}
+function partSpire(x,y,z,h, P, night){
+  if(!P.spec.spire) return;
+  if(P.spec.clock){
+    // Gweru's clocktower: a square tower rising through the roof, clock on each face
+    const ff2 = roadFwd(h), rr2 = roadRight(h);
+    const tw = 3.2, th = P.h + 9;
+    const cx2 = x + rr2.x*P.w*0.32, cz2 = z + rr2.z*P.w*0.32;
+    boxAt(cx2, y, cz2, tw, th, tw, h, C3(P.col), {spec:0.12});
+    boxAt(cx2, y+th, cz2, tw*1.25, 0.5, tw*1.25, h, C3(P.trim), {spec:0.2});
+    GLR.draw('cone', M4.trs(cx2, y+th+0.5, cz2, h+Math.PI/4, tw*1.5, 3.6, tw*1.5),
+      C3(P.roofCol), {spec:0.06});
+    if(Q().build >= 1){
+      [[ff2,-1],[ff2,1],[rr2,-1],[rr2,1]].forEach(f=>{
+        boxAt(cx2 + f[0].x*f[1]*(tw*0.5+0.06), y+th-2.6, cz2 + f[0].z*f[1]*(tw*0.5+0.06),
+          1.7, 1.7, 0.12, h, C3('#f4f7ff'),
+          {emissive: night ? new Float32Array([0.22,0.22,0.18]) : null});
+      });
+    }
+    return;
+  }
+  const ff = roadFwd(h);
+  const bx = x - ff.x*(P.d*0.5 - 1.2), bz = z - ff.z*(P.d*0.5 - 1.2);
+  boxAt(bx, y, bz, 3.0, P.h + 5.5, 3.0, h, C3(P.col), {spec:0.1});
+  GLR.draw('cone', M4.trs(bx, y + P.h + 5.5, bz, h, 3.4, 4.2, 3.4), C3(P.roofCol), {spec:0.06});
+  // a small clock face, like the tower in the Harare photograph
+  if(Q().build >= 2){
+    boxAt(bx - ff.x*1.55, y + P.h + 2.6, bz - ff.z*1.55, 1.3, 1.3, 0.1, h, C3('#f4f7ff'),
+      {emissive: night ? new Float32Array([0.2,0.2,0.16]) : null});
+  }
+}
+function partParkingDecks(x,y,z,h, P){
+  // an open parking structure: decks and columns, no facade
+  for(let s=1;s<=P.storeys;s++){
+    boxAt(x, y + s*STOREY_H, z, P.w, 0.28, P.d, h, C3(P.trim), {spec:0.15});
+  }
+  const rr = roadRight(h);
+  for(let k=-1;k<=1;k++)
+    boxAt(x + rr.x*k*P.w*0.4, y, z + rr.z*k*P.w*0.4, 0.4, P.h, 0.4, h, C3(P.trim), {spec:0.15});
+}
+
+/* =====================================================================
+   GRANITE — THE ZIMBABWEAN ROCK SYSTEM
+   ---------------------------------------------------------------------
+   The rocks reference sheet names six formations and shows where each one
+   belongs: kopjes of stacked round boulders, balanced rocks, exposed
+   outcrops along the road, scattered boulder fields, rocky hills and rocky
+   valleys. It also shows granite in the road environment — beside highways,
+   on the hills above towns, in a cut face at the roadside, and as a natural
+   barrier at the verge.
+
+   Every boulder is an irregular, partly buried, individually rotated mass.
+   Nothing is ever placed twice the same way.
+   ===================================================================== */
+
+const GRANITE = ['#8d7f6b','#7d715f','#9a8b74','#6f6557','#a4957c','#857a68'];
+const LICHEN  = ['#7a8060','#6e7a58','#8a8a66'];
+
+/* one boulder: a squashed, tilted, partly buried sphere */
+function drawBoulder(x, y, z, r, seed, opt){
+  opt = opt || {};
+  const q = Q();
+  const h1 = segHash(seed, 500), h2 = segHash(seed, 501), h3 = segHash(seed, 502);
+  const h4 = segHash(seed, 503), h5 = segHash(seed, 504);
+  const col = opt.col || GRANITE[Math.floor(h1*GRANITE.length) % GRANITE.length];
+  // granite weathers into rounded but never spherical masses
+  const sx = r * (0.85 + h2*0.55);
+  const sy = r * (0.62 + h3*0.45);
+  const sz = r * (0.85 + h4*0.55);
+  // sunk into the ground, so it grows out of the terrain instead of resting on it
+  const bury = sy * (0.18 + h5*0.22);
+  GLR.draw('sphere', M4.trs(x, y - bury, z, h1*6.28, sx*2, sy*2, sz*2),
+    C3(col), {spec:0.07});
+  // a lichen-stained cap on the larger ones
+  if(q.detail >= 2 && r > 1.4 && h3 < 0.5){
+    GLR.draw('sphere', M4.trs(x + (h2-0.5)*r*0.3, y - bury + sy*0.55, z + (h4-0.5)*r*0.3,
+      h2*6.28, sx*1.1, sy*0.5, sz*1.1),
+      C3(LICHEN[Math.floor(h4*LICHEN.length)%LICHEN.length]), {spec:0.05, alpha:0.85});
+  }
+  if(Q().shadows && r > 1.0) blobShadow(x, y, z, r*1.1);
+}
+
+/* a kopje: boulders stacked into a pile, the way granite exfoliates */
+function drawKopje(x, y, z, scale, seed){
+  const q = Q();
+  const n = 4 + Math.floor(segHash(seed, 510) * (q.detail >= 2 ? 6 : 3));
+  // a broad base course
+  for(let k=0;k<n;k++){
+    const a = segHash(seed+k, 511)*6.28;
+    const rad = scale * (0.35 + segHash(seed+k, 512)*0.9);
+    const dist = scale * segHash(seed+k, 513) * 1.1;
+    drawBoulder(x + Math.cos(a)*dist, y, z + Math.sin(a)*dist, rad, seed*7+k);
+  }
+  // and a smaller course sitting on top, which is what makes it read as a kopje
+  const m = Math.max(1, Math.floor(n*0.5));
+  for(let k=0;k<m;k++){
+    const a = segHash(seed+k, 514)*6.28;
+    const rad = scale * (0.28 + segHash(seed+k, 515)*0.5);
+    const dist = scale * segHash(seed+k, 516) * 0.5;
+    drawBoulder(x + Math.cos(a)*dist, y + scale*0.75, z + Math.sin(a)*dist, rad, seed*13+k);
+  }
+  if(q.detail >= 1 && segHash(seed, 517) < 0.7){
+    // a crown boulder, and the trees that always grow out of the cracks
+    drawBoulder(x, y + scale*1.35, z, scale*0.4, seed*17);
+  }
+  if(q.detail >= 1){
+    const t = 1 + Math.floor(segHash(seed,518)*2);
+    for(let k=0;k<t;k++){
+      const a = segHash(seed+k,519)*6.28;
+      drawTree3D(x + Math.cos(a)*scale*1.3, y, z + Math.sin(a)*scale*1.3,
+        3.5 + segHash(seed+k,520)*3, 'msasa');
+    }
+  }
+}
+
+/* a balanced rock: one mass resting on two or three smaller ones */
+function drawBalancedRock(x, y, z, scale, seed){
+  const legs = 2 + Math.floor(segHash(seed, 530)*2);
+  for(let k=0;k<legs;k++){
+    const a = (k/legs)*6.28 + segHash(seed,531);
+    drawBoulder(x + Math.cos(a)*scale*0.55, y, z + Math.sin(a)*scale*0.55,
+      scale*0.55, seed*23+k);
+  }
+  // the balanced mass, tilted, sitting proud
+  const h1 = segHash(seed, 532);
+  GLR.draw('sphere', M4.trs(x, y + scale*0.9, z, h1*6.28,
+    scale*2.4, scale*1.1, scale*1.9),
+    C3(GRANITE[Math.floor(h1*GRANITE.length)%GRANITE.length]), {spec:0.07});
+  if(Q().shadows) blobShadow(x, y, z, scale*1.6);
+}
+
+/* an outcrop: low exposed granite running along the road */
+function drawOutcrop(x, y, z, h, scale, seed){
+  const rr = roadRight(h), ff = roadFwd(h);
+  const n = 3 + Math.floor(segHash(seed, 540)*4);
+  for(let k=0;k<n;k++){
+    const along = (k - (n-1)/2) * scale * 1.5;
+    const across = (segHash(seed+k, 541) - 0.5) * scale * 0.9;
+    drawBoulder(x + ff.x*along + rr.x*across, y,
+                z + ff.z*along + rr.z*across,
+                scale * (0.5 + segHash(seed+k, 542)*0.8), seed*29+k);
+  }
+}
+
+/* a boulder field: singles scattered wide across the ground */
+function drawBoulderField(x, y, z, h, scale, seed){
+  const q = Q();
+  const n = (q.detail >= 2 ? 7 : q.detail >= 1 ? 5 : 3);
+  const rr = roadRight(h), ff = roadFwd(h);
+  for(let k=0;k<n;k++){
+    const along  = (segHash(seed+k, 550) - 0.5) * scale * 9;
+    const across = (segHash(seed+k, 551) - 0.5) * scale * 7;
+    drawBoulder(x + ff.x*along + rr.x*across, y,
+                z + ff.z*along + rr.z*across,
+                scale * (0.25 + segHash(seed+k, 552)*0.7), seed*31+k);
+  }
+}
+
+/* a rocky ridge: the granite hills that stand over Chinhoyi and the Matobo */
+function drawRockyHill(x, y, z, scale, seed){
+  const q = Q();
+  // the hill mass itself, then granite breaking through its crown
+  GLR.draw('sphere', M4.trs(x, y - scale*0.55, z, segHash(seed,560)*6.28,
+    scale*7, scale*2.6, scale*5.5), C3('#5f6f4a'), {spec:0.03});
+  const n = q.detail >= 2 ? 8 : q.detail >= 1 ? 5 : 3;
+  for(let k=0;k<n;k++){
+    const a = segHash(seed+k, 561)*6.28;
+    const d = segHash(seed+k, 562) * scale * 2.6;
+    drawBoulder(x + Math.cos(a)*d, y + scale*(0.7 + segHash(seed+k,563)*0.7),
+                z + Math.sin(a)*d, scale*(0.5+segHash(seed+k,564)*0.9), seed*37+k);
+  }
+}
+
+/* a granite cut: the road blasted through rock, face standing at the verge */
+function drawRockCut(x, y, z, h, scale, seed){
+  const rr = roadRight(h), ff = roadFwd(h);
+  const side = Math.sign(scale) || 1;
+  const s = Math.abs(scale);
+  for(let k=0;k<4;k++){
+    const along = (k-1.5) * s * 1.7;
+    const up = s * (0.3 + segHash(seed+k, 570)*0.9);
+    drawBoulder(x + ff.x*along, y + up*0.4, z + ff.z*along,
+                s*(0.7 + segHash(seed+k,571)*0.7), seed*41+k,
+                {col: GRANITE[Math.floor(segHash(seed+k,572)*GRANITE.length)%GRANITE.length]});
+  }
+}
+
+/* ------------------------------------------------------- the dispatch */
+function drawRockForm(form, x, y, z, h, sp){
+  const scale = (sp.h || 2) * 1.15;
+  const seed = (sp.i || 0) + 1;
+  switch(form){
+    case 'balanced': drawBalancedRock(x,y,z, scale*0.8, seed); break;
+    case 'outcrop':  drawOutcrop(x,y,z,h, scale*0.75, seed); break;
+    case 'field':    drawBoulderField(x,y,z,h, scale*0.6, seed); break;
+    case 'hill':     drawRockyHill(x,y,z, scale*1.1, seed); break;
+    case 'cut':      drawRockCut(x,y,z,h, scale*0.8, seed); break;
+    case 'boulder':  drawBoulder(x,y,z, scale*1.1, seed); break;
+    default:         drawKopje(x,y,z, scale, seed);
+  }
+}
+
+/* =====================================================================
+   PHASE 10 — LANDMARKS
+   ---------------------------------------------------------------------
+   Every town board in the reference set opens the same way: a dark green
+   WELCOME TO board on twin posts as you enter, with the town's name and a
+   line of small service icons. Beyond that, each region has one thing that
+   identifies it without a caption — the Victoria Falls bridge, the steel
+   arch at Birchenough, the conical tower at Great Zimbabwe, the balancing
+   rocks of the Matobo, elephants in the Hwange woodland, and the falls
+   themselves throwing spray above the gorge.
+
+   Landmarks are placed once per route, at a point where they can be seen
+   from the road, and never twice.
+   ===================================================================== */
+
+const TOWN_NAMES = {
+  cbd:['HARARE'], bulawayo:['BULAWAYO'], avenue:['HARARE'],
+  town:['MARONDERA','CHINHOYI','MURAMBINDA','GWERU','CHIVHU','RUSAPE','KADOMA'],
+  school:['MARONDERA'], highway:['CHIVHU'],
+  peri:['NORTON','CHITUNGWIZA','EPWORTH'],
+  suburb:['AVONDALE','BORROWDALE','HATFIELD'],
+  rural:['BUHERA','GURUVE','MUREHWA'], gravel:['SANYATI','MAKWASHA']
+};
+
+/* the green gateway board every town board shows */
+function drawWelcomeBoard(x, y, z, h, sp, night){
+  const w = 6.2, hh = 3.0, base = 1.5;
+  const rr = roadRight(h);
+  [-1,1].forEach(k=>
+    boxAt(x + rr.x*k*w*0.36, y, z + rr.z*k*w*0.36, 0.26, base + hh*0.5, 0.26, h,
+      C3('#6b5b3f'), {spec:0.15}));
+  const yaw = signYaw(h, (sp.off||0) < 0 ? 'traffic' : 'oncoming');
+  const emis = night ? new Float32Array([0.04,0.11,0.06]) : null;
+  // dark green ground with a pale border
+  GLR.draw('box', M4.trs(x, y+base, z, yaw, w, hh, 0.16), C3('#f4f7ff'), {spec:0.2});
+  GLR.draw('box', M4.trs(x, y+base, z, yaw, w*0.965, hh*0.93, 0.19), C3('#123f2a'),
+    {spec:0.2, emissive:emis});
+  if(Q().build >= 1){
+    const ff = roadFwd(yaw);
+    const px = x - ff.x*0.11, pz = z - ff.z*0.11;
+    // WELCOME TO, in gold, above the town name in white
+    GLR.draw('box', M4.trs(px, y+base+hh*0.30, pz, yaw, w*0.34, 0.16, 0.06),
+      C3('#F5B324'), {spec:0.25});
+    const name = sp.town || 'ZIMBABWE';
+    GLR.draw('box', M4.trs(px, y+base+hh*0.06, pz, yaw,
+      Math.min(w*0.78, 0.40*name.length), 0.42, 0.06), C3('#f4f7ff'), {spec:0.25});
+    // the row of small service icons along the bottom
+    if(Q().build >= 2){
+      for(let k=0;k<5;k++){
+        const o = (k-2)*w*0.14;
+        GLR.draw('box', M4.trs(px + roadRight(yaw).x*o, y+base-hh*0.30,
+          pz + roadRight(yaw).z*o, yaw, 0.22, 0.22, 0.05), C3('#F5B324'), {spec:0.25});
+      }
+    }
+  }
+}
+
+/* a steel through-arch bridge: Victoria Falls and Birchenough both */
+function drawArchBridge(x, y, z, h, sp, night, cam){
+  const span = sp.span || 90, rise = sp.rise || 26, w = 5.0;
+  const ff = roadFwd(h), rr = roadRight(h);
+  const steel = C3(sp.c || '#8d99ad');
+  const segs = Q().detail >= 2 ? 14 : Q().detail >= 1 ? 9 : 6;
+  // the gorge the bridge crosses
+  GLR.draw('box', M4.trs(x, y - 40, z, h, span*1.4, 34, span*0.5), C3('#6f6557'), {spec:0.05});
+  // deck
+  for(let k=0;k<segs;k++){
+    const t = (k/(segs-1) - 0.5) * span;
+    boxAt(x + ff.x*t, y, z + ff.z*t, w, 0.5, span/segs + 0.6, h, C3('#4a4f5e'), {spec:0.2});
+  }
+  // the arch itself, and the hangers down to the deck
+  [-1,1].forEach(sd=>{
+    for(let k=0;k<segs;k++){
+      const t0 = (k/(segs-1) - 0.5), t1 = ((k+1)/(segs-1) - 0.5);
+      const y0 = y - rise*(1 - Math.cos(t0*Math.PI))*0.5 - 1;
+      const y1 = y - rise*(1 - Math.cos(t1*Math.PI))*0.5 - 1;
+      const ax = x + ff.x*t0*span + rr.x*sd*w*0.55;
+      const az = z + ff.z*t0*span + rr.z*sd*w*0.55;
+      const seg = span/(segs-1);
+      GLR.draw('box', M4.trs(ax, y0, az, h, 0.42, 0.42, seg*1.1,
+        Math.atan2(y1-y0, seg)), steel, {spec:0.45});
+      // hanger up to the deck
+      if(y0 < y - 1.2)
+        boxAt(ax, y0, az, 0.16, y - y0, 0.16, h, steel, {spec:0.4});
+    }
+    // parapet
+    boxAt(x + rr.x*sd*w*0.5, y+0.5, z + rr.z*sd*w*0.5, 0.14, 1.1, span, h, steel, {spec:0.4});
+  });
+  if(night){
+    for(let k=0;k<5;k++){
+      const t = (k/4 - 0.5)*span;
+      glowSprite(x + ff.x*t, y+3, z + ff.z*t, 3.0, C3s('#ffe6a8', 0.35), cam);
+    }
+  }
+}
+
+/* the conical tower and dry-stone wall of Great Zimbabwe */
+function drawConicalTower(x, y, z, h, sp, night){
+  const q = Q();
+  const R = 5.0, H = 10.0;
+  // the tower: a battered dry-stone cone, wider at the base
+  const courses = q.detail >= 2 ? 10 : 6;
+  for(let k=0;k<courses;k++){
+    const t = k/courses;
+    const r = R*(1 - t*0.42);
+    GLR.draw('cyl', M4.trs(x, y + t*H, z, h, r*2, H/courses + 0.15, r*2),
+      C3(k%2 ? '#9a8b74' : '#8d7f6b'), {spec:0.06});
+  }
+  // the great enclosure wall curving away from it
+  if(q.detail >= 1){
+    const n = q.detail >= 2 ? 16 : 9;
+    for(let k=0;k<n;k++){
+      const a = -0.9 + (k/n)*2.6;
+      const rad = 15 + Math.sin(k*0.7)*1.5;
+      const wx = x + Math.cos(a)*rad, wz = z + Math.sin(a)*rad;
+      GLR.draw('box', M4.trs(wx, y, wz, a + Math.PI/2, 1.6, 5.2 - Math.abs(k-n/2)*0.15, 3.4),
+        C3(k%2 ? '#8d7f6b' : '#857a68'), {spec:0.06});
+    }
+  }
+}
+
+/* Victoria Falls: the gorge, the sheet of water, and the spray above it */
+function drawFalls(x, y, z, h, sp, night, cam){
+  const q = Q();
+  const w = 70, drop = 45;
+  const ff = roadFwd(h), rr = roadRight(h);
+  // the gorge wall
+  GLR.draw('box', M4.trs(x, y - drop, z, h, w*1.4, drop, 26), C3('#5f5647'), {spec:0.05});
+  // the curtain of water, in sheets
+  const sheets = q.detail >= 2 ? 9 : q.detail >= 1 ? 5 : 3;
+  for(let k=0;k<sheets;k++){
+    const o = (k/(sheets-1) - 0.5) * w;
+    const d = drop * (0.82 + segHash(k, 600)*0.2);
+    GLR.draw('box', M4.trs(x + rr.x*o, y - d, z + rr.z*o, h, w/sheets*0.95, d, 1.6),
+      C3('#cfe4f2'), {spec:0.6, emissive:new Float32Array([0.12,0.16,0.20])});
+  }
+  // the spray, which is what you actually see from the road
+  const puffs = q.detail >= 2 ? 12 : q.detail >= 1 ? 7 : 4;
+  for(let k=0;k<puffs;k++){
+    const o = (segHash(k,601) - 0.5) * w;
+    const up = 6 + segHash(k,602)*30 + Math.sin(G.t*0.3 + k)*2;
+    const s = 10 + segHash(k,603)*16;
+    GLR.draw('sphere', M4.trs(x + rr.x*o + ff.x*(segHash(k,604)-0.5)*10, y + up,
+      z + rr.z*o + ff.z*(segHash(k,604)-0.5)*10, 0, s, s*0.8, s),
+      C3('#eef6fb'), {alpha:0.24, spec:0, emissive:new Float32Array([0.16,0.18,0.20]), noDepthWrite:true});
+  }
+}
+
+/* elephants, in the Hwange woodland */
+function drawElephant(x, y, z, h, seed){
+  const s = 1.0 + segHash(seed, 610)*0.5;
+  const col = C3('#7d7873');
+  blobShadow(x, y, z, 2.2*s);
+  const rr = roadRight(h), ff = roadFwd(h);
+  // body, head, trunk, ears, legs, tusks
+  boxAt(x, y + 1.5*s, z, 1.7*s, 1.7*s, 3.4*s, h, col, {spec:0.05});
+  const hx = x + ff.x*2.2*s, hz = z + ff.z*2.2*s;
+  GLR.draw('sphere', M4.trs(hx, y + 2.2*s, hz, h, 1.5*s, 1.5*s, 1.5*s), col, {spec:0.05});
+  // trunk, hanging and swinging
+  for(let k=0;k<4;k++){
+    const t = k/4;
+    GLR.draw('box', M4.trs(hx + ff.x*(0.6+t*0.3)*s + Math.sin(G.t*0.8+seed)*0.12*t,
+      y + (2.0 - t*1.6)*s, hz + ff.z*(0.6+t*0.3)*s, h,
+      (0.34 - t*0.12)*s, 0.5*s, (0.34-t*0.12)*s), col, {spec:0.05});
+  }
+  [-1,1].forEach(k=>{
+    // ears
+    GLR.draw('box', M4.trs(hx + rr.x*k*1.1*s, y + 2.3*s, hz + rr.z*k*1.1*s, h,
+      0.16*s, 1.5*s, 1.5*s, 0, k*0.2), col, {spec:0.04});
+    // tusks
+    GLR.draw('box', M4.trs(hx + rr.x*k*0.45*s + ff.x*0.7*s, y + 1.5*s,
+      hz + rr.z*k*0.45*s + ff.z*0.7*s, h, 0.14*s, 1.0*s, 0.14*s, 0.5, 0),
+      C3('#e6ded0'), {spec:0.3});
+  });
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>{
+    boxAt(x + rr.x*p[0]*0.65*s + ff.x*p[1]*1.2*s, y,
+          z + rr.z*p[0]*0.65*s + ff.z*p[1]*1.2*s, 0.55*s, 1.5*s, 0.55*s, h, col, {spec:0.04});
+  });
+}
+function drawElephantHerd(x, y, z, h, sp){
+  const n = 2 + Math.floor(segHash(sp.i||0, 615)*3);
+  const rr = roadRight(h), ff = roadFwd(h);
+  for(let k=0;k<n;k++){
+    const a = (segHash((sp.i||0)+k, 616) - 0.5) * 22;
+    const b = (segHash((sp.i||0)+k, 617) - 0.5) * 16;
+    drawElephant(x + ff.x*a + rr.x*b, y, z + ff.z*a + rr.z*b,
+      h + segHash((sp.i||0)+k, 618)*6.28, (sp.i||0)*7 + k);
+  }
+}
+
+/* a statue on its plinth, as the town parks all show */
+function drawStatue(x, y, z, h, sp, night){
+  boxAt(x, y, z, 2.4, 0.4, 2.4, h, C3('#c9cfd8'), {spec:0.12});
+  boxAt(x, y+0.4, z, 1.5, 3.0, 1.5, h, C3('#b9a684'), {spec:0.1});
+  drawPed3D(x, y+3.4, z, h + Math.PI, 0, false, '#5f5b52');
+}
+
+function drawLandmark(kind, x, y, z, h, sp, night, cam){
+  switch(kind){
+    case 'welcome':  drawWelcomeBoard(x,y,z,h, sp, night); break;
+    case 'bridge':   drawArchBridge(x,y,z,h, sp, night, cam); break;
+    case 'conical':  drawConicalTower(x,y,z,h, sp, night); break;
+    case 'falls':    drawFalls(x,y,z,h, sp, night, cam); break;
+    case 'elephants':drawElephantHerd(x,y,z,h, sp); break;
+    case 'statue':   drawStatue(x,y,z,h, sp, night); break;
+  }
+}
+
+/* -------------------------------------- hoardings and destination boards */
+function drawHoarding3D(x,y,z,h, sp, night){
+  // a large advertising hoarding on two posts, facing the traffic it addresses
+  const w = 7.5, hh = 4.0, base = 3.2;
+  const rr = roadRight(h);
+  [-1,1].forEach(k=>
+    boxAt(x + rr.x*k*w*0.36, y, z + rr.z*k*w*0.36, 0.3, base+hh*0.5, 0.3, h,
+      C3('#5b6274'), {spec:0.25}));
+  const yaw = signYaw(h, (sp.off||0) < 0 ? 'traffic' : 'oncoming');
+  const col = sp.c || '#1b6f8f';
+  GLR.draw('box', M4.trs(x, y+base, z, yaw, w, hh, 0.2), C3(col),
+    {spec:0.15, emissive: night ? C3s(col, 0.28) : null});
+  GLR.draw('box', M4.trs(x, y+base+hh, z, yaw, w*1.04, 0.3, 0.3), C3('#c9cfd8'), {spec:0.3});
+  if(night){
+    // hoardings here are lit from a gantry above
+    boxAt(x, y+base+hh+0.3, z, w*0.7, 0.16, 0.5, yaw, C3('#ffe6a8'),
+      {emissive:C3s('#ffe6a8',0.6)});
+  }
+}
+function drawDestBoard3D(x,y,z,h, sp, night){
+  // the green destination board: white legend, white arrow, twin posts
+  const lines = sp.dest || [{name:'HARARE', km:0, ahead:true}];
+  const w = 5.4, lineH = 1.05, hh = lines.length*lineH + 0.5, base = 3.4;
+  const rr = roadRight(h);
+  [-1,1].forEach(k=>
+    boxAt(x + rr.x*k*w*0.34, y, z + rr.z*k*w*0.34, 0.24, base+hh*0.5, 0.24, h,
+      C3('#8d94a6'), {spec:0.3}));
+  const yaw = signYaw(h, (sp.off||0) < 0 ? 'traffic' : 'oncoming');
+  const emis = night ? new Float32Array([0.05,0.13,0.07]) : null;   // retro-reflective
+  GLR.draw('box', M4.trs(x, y+base, z, yaw, w, hh, 0.16), C3('#0f6b3a'), {spec:0.2, emissive:emis});
+  GLR.draw('box', M4.trs(x, y+base, z, yaw, w*1.02, hh*1.02, 0.13), C3('#f4f7ff'), {spec:0.2});
+  GLR.draw('box', M4.trs(x, y+base+0.09, z, yaw, w*0.97, hh*0.94, 0.15), C3('#0f6b3a'),
+    {spec:0.2, emissive:emis});
+  if(Q().build >= 1){
+    const ff = roadFwd(yaw);
+    lines.forEach((t,k)=>{
+      const name = t.name || t, km = t.km, ahead = t.ahead;
+      const ly = y + base + hh - (k+0.62)*lineH;
+      // place name on the left
+      GLR.draw('box', M4.trs(x - ff.x*0.09 - rr.x*w*0.18, ly, z - ff.z*0.09 - rr.z*w*0.18, yaw,
+        Math.min(w*0.46, 0.30*name.length), 0.26, 0.06), C3('#f4f7ff'), {spec:0.25});
+      // distance in kilometres, in its own column
+      if(km !== undefined){
+        GLR.draw('box', M4.trs(x - ff.x*0.09 + rr.x*w*0.20, ly, z - ff.z*0.09 + rr.z*w*0.20, yaw,
+          0.24*String(km).length, 0.24, 0.06), C3('#f4f7ff'), {spec:0.25});
+      }
+      // and the arrow: up for straight on, right for a turning
+      const ax = x - ff.x*0.09 + rr.x*w*0.40, az = z - ff.z*0.09 + rr.z*w*0.40;
+      if(ahead){
+        GLR.draw('box', M4.trs(ax, ly-0.06, az, yaw, 0.12, 0.42, 0.06), C3('#f4f7ff'), {spec:0.25});
+        GLR.draw('cone', M4.trs(ax, ly+0.16, az, yaw, 0.34, 0.28, 0.08), C3('#f4f7ff'),
+          {spec:0.25, noCull:true});
+      } else {
+        GLR.draw('box', M4.trs(ax-0.10, ly, az, yaw, 0.42, 0.12, 0.06), C3('#f4f7ff'), {spec:0.25});
+        GLR.draw('cone', M4.trs(ax+0.20, ly, az, yaw, 0.30, 0.30, 0.08, 0, -Math.PI/2),
+          C3('#f4f7ff'), {spec:0.25, noCull:true});
+      }
+    });
+  }
+}
+
+/* ------------------------------------------------ boundary wall & gate */
+function drawWall3D(x,y,z,h, sp, night){
+  const len = 9 + segHash(sp.i||0, 340)*7;
+  const hh = 1.9 + segHash(sp.i||0, 341)*0.7;
+  const col = segHash(sp.i||0, 342) < 0.5 ? '#cdc4b0' : '#b9a684';
+  boxAt(x, y, z, 0.3, hh, len, h, C3(col), {spec:0.08});
+  boxAt(x, y+hh, z, 0.42, 0.16, len, h, C3('#9a9182'), {spec:0.1});
+  // durawall-style pillars
+  if(Q().build >= 1){
+    const ff = roadFwd(h);
+    for(let k=-1;k<=1;k++)
+      boxAt(x + ff.x*k*len*0.42, y, z + ff.z*k*len*0.42, 0.5, hh+0.35, 0.5, h, C3(col), {spec:0.08});
+  }
+}
+function drawGate3D(x,y,z,h, sp, night){
+  const w = 3.6;
+  const rr = roadRight(h);
+  [-1,1].forEach(k=>{
+    boxAt(x + rr.x*k*w*0.5, y, z + rr.z*k*w*0.5, 0.45, 2.5, 0.45, h, C3('#b9a684'), {spec:0.08});
+  });
+  boxAt(x, y+0.15, z, 0.12, 2.0, w, h, C3('#3f4a63'), {spec:0.35});
+  if(night) GLR.draw('sphere', M4.trs(x, y+2.7, z, h, 0.22,0.22,0.22), C3('#ffe6a8'),
+    {emissive:C3s('#ffe6a8',0.7)});
+}
+
+/* ------------------------------------------------------- the dispatch */
 function drawBuilding3D(kind, x,y,z,h, sp, night){
-  if(kind==='tower'){
-    const ht = (sp.h||3)*2.6, w = 7 + (sp.h||3);
-    boxAt(x,y,z, w, ht, w*0.8, h, C3(sp.c||'#3d4a72'),
-      {tex:GLR.facadeTex('tower'), spec:0.25, emissive: night ? new Float32Array([0.08,0.08,0.05]) : null});
-    boxAt(x,y+ht,z, w*0.35, 1.2, w*0.3, h, C3('#2f3a5c'), {spec:0.2});
-  } else if(kind==='house'){
-    boxAt(x,y,z, 7,3,6, h, C3(sp.c||'#e8e4d5'), {tex:GLR.facadeTex('house'), spec:0.08});
-    GLR.draw('cone', M4.trs(x, y+3, z, h+Math.PI/4, 6.4, 1.8, 6.4), C3('#8a3b2e'), {spec:0.05});
-  } else if(kind==='shop'){
-    boxAt(x,y,z, 8,3.4,6, h, C3(sp.c||'#f0b429'), {tex:GLR.facadeTex('shop'), spec:0.1,
-      emissive: night ? new Float32Array([0.14,0.11,0.03]) : null});
-    boxAt(x,y+3.4,z, 8.6,0.35,6.4, h, C3('#2f3a5c'), {spec:0.1});
-  } else if(kind==='shack'){
-    boxAt(x,y,z, 4,2.3,3.4, h, C3('#b9a684'), {tex:GLR.facadeTex('shack'), spec:0.04});
-    boxAt(x,y+2.3,z, 4.4,0.16,3.8, h, C3('#8d8d92'), {spec:0.3});
-  } else if(kind==='hut'){
-    cylAt(x,y,z, 2.1, 2.1, 0, C3('#cdb99a'), {spec:0.03});
-    GLR.draw('cone', M4.trs(x, y+2.1, z, 0, 5.2, 2.0, 5.2), C3('#8a6a3a'), {spec:0.03});
-  } else if(kind==='kopje'){
-    const s = (sp.h||2)*2.4;
-    GLR.draw('sphere', M4.trs(x, y, z, 0, s*1.6, s, s*1.6), C3('#8d7f6b'), {spec:0.06});
-    GLR.draw('sphere', M4.trs(x+s*0.5, y, z+s*0.3, 0, s*0.9, s*0.6, s*0.9), C3('#7d715f'), {spec:0.06});
-  } else if(kind==='chevronPost'){
+  // things that are not really buildings keep their own drawing
+  if(kind === 'kopje'){ drawRockForm(sp.form || 'kopje', x, y, z, h, sp); return; }
+  if(kind === 'chevronPost'){
     boxAt(x,y,z, 0.1,1.1,0.1, h, C3('#f3f6ff'), {spec:0.1});
     boxAt(x,y+1.1,z, 0.5,0.4,0.1, h, C3('#E3342F'), {emissive:new Float32Array([0.12,0.02,0.02])});
+    return;
   }
+  if(kind === 'hoarding'){ drawHoarding3D(x,y,z,h, sp, night); return; }
+  if(kind === 'destboard'){ drawDestBoard3D(x,y,z,h, sp, night); return; }
+  if(kind === 'wall'){ drawWall3D(x,y,z,h, sp, night); return; }
+  if(kind === 'gate'){ drawGate3D(x,y,z,h, sp, night); return; }
+  if(!BUILD_SPECS[kind]) return;
+
+  const seg = G.segs[sp.i||0];
+  const prof = seg ? profileFor(seg) : ENV_PROFILES.HARARE_SUBURB;
+  const P = sp.P || (sp.P = buildingParams(kind, sp.i||0, prof));
+  // colour override from the placement, where one was given
+  if(sp.c) P.col = sp.c;
+  const yaw = h + P.rot;
+  // step it back off the road by its own setback, so the building line varies
+  const ff = roadFwd(yaw);
+  const bx = x + ff.x*0 - roadRight(yaw).x*0;
+  const px = x, pz = z;
+
+  if(kind === 'hut'){
+    cylAt(px, y, pz, P.w*0.5, 2.4, yaw, C3('#cdb99a'), {spec:0.03});
+    GLR.draw('cone', M4.trs(px, y+2.4, pz, yaw, P.w*1.35, P.w*0.55, P.w*1.35), C3('#8a6a3a'), {spec:0.03});
+    return;
+  }
+  if(kind === 'cyltower'){
+    partStoreys(px,y,pz,yaw,P,night);
+    partRoof(px,y,pz,yaw,P,night);
+    return;
+  }
+  if(kind === 'parking'){
+    partParkingDecks(px,y,pz,yaw,P);
+    partRoof(px,y,pz,yaw,P,night);
+    partBillboard(px,y,pz,yaw,P,night);
+    return;
+  }
+  // plinth, so the building meets sloping ground cleanly
+  if(Q().build >= 1) boxAt(px, y-0.35, pz, P.w*1.05, 0.5, P.d*1.05, yaw, C3('#8d8578'), {spec:0.08});
+  partStoreys(px,y,pz,yaw,P,night);
+  partRoof(px,y,pz,yaw,P,night);
+  partWaterTanks(px,y,pz,yaw,P);
+  partCanopy(px,y,pz,yaw,P,night);
+  partVerandah(px,y,pz,yaw,P);
+  partPortico(px,y,pz,yaw,P,night);
+  partSpire(px,y,pz,yaw,P,night);
+  partBillboard(px,y,pz,yaw,P,night);
+}
+/* =====================================================================
+   PHASE 7 — ROADSIDE LIFE
+   ---------------------------------------------------------------------
+   From the design sheets: market stalls under blue, red and orange
+   umbrellas with tomatoes, onions and cabbages on the table and a
+   hand-painted board; commuters waiting at a kombi rank; schoolchildren
+   walking in green uniform; roadworks with cones and a hi-vis gang; cars
+   parked nose-in along a CBD kerb; a herd boy with his cattle.
+
+   These are placed like everything else — deterministically from the
+   segment hash, in clusters rather than at fixed intervals, with density
+   from the environment profile.
+   ===================================================================== */
+
+const UMBRELLA_COLS = ['#2f6fd0','#E3342F','#F5B324','#17A96A','#7a2f6f','#e07a1f'];
+const PRODUCE_COLS  = ['#d94b3a','#e0a13a','#6fae3f','#c9622e','#8fbf50','#b03a2e'];
+const UNIFORM_COLS  = ['#1f6b3c','#2f7d43','#17603a'];   // school green
+
+/* ------------------------------------------------------------ stalls -- */
+function drawStall3D(x,y,z,h, sp, night, cam){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const w = 2.2 + segHash(i,400)*0.9;
+  const tableH = 0.78;
+  // trestle table
+  boxAt(x, y+tableH, z, w, 0.09, 1.1, h, C3('#8a6a3a'), {spec:0.08});
+  [-1,1].forEach(k=>{
+    boxAt(x + rr.x*k*w*0.42, y, z + rr.z*k*w*0.42, 0.09, tableH, 0.09, h, C3('#6b4b2a'), {spec:0.06});
+  });
+  // produce laid out in heaps
+  if(Q().build >= 1){
+    const heaps = 3 + Math.floor(segHash(i,401)*3);
+    for(let k=0;k<heaps;k++){
+      const o = (k/(heaps-1) - 0.5) * w * 0.82;
+      const col = PRODUCE_COLS[Math.floor(segHash(i+k,402)*PRODUCE_COLS.length)%PRODUCE_COLS.length];
+      GLR.draw('sphere', M4.trs(x + rr.x*o, y+tableH+0.09, z + rr.z*o, h, 0.34,0.22,0.34),
+        C3(col), {spec:0.14});
+    }
+  }
+  // the umbrella
+  const uc = UMBRELLA_COLS[Math.floor(segHash(i,403)*UMBRELLA_COLS.length)%UMBRELLA_COLS.length];
+  boxAt(x, y, z, 0.07, 2.25, 0.07, h, C3('#8d94a6'), {spec:0.25});
+  GLR.draw('cone', M4.trs(x, y+2.25, z, h, w*1.5, 0.62, w*1.5), C3(uc),
+    {spec:0.12, emissive: night ? C3s(uc, 0.10) : null});
+  // a hand-painted board leaning against the table
+  if(Q().build >= 2){
+    GLR.draw('box', M4.trs(x - ff.x*0.7 + rr.x*w*0.5, y+0.5, z - ff.z*0.7 + rr.z*w*0.5,
+      h, 0.85, 0.55, 0.05, 0, 0.2), C3('#f2ead6'), {spec:0.1});
+  }
+  // the trader, and often a customer
+  drawPed3D(x - ff.x*0.9, y, z - ff.z*0.9, h + Math.PI, segHash(i,404)*6.3, false,
+    UMBRELLA_COLS[Math.floor(segHash(i,405)*UMBRELLA_COLS.length)%UMBRELLA_COLS.length]);
+  if(segHash(i,406) < 0.5)
+    drawPed3D(x + ff.x*1.1 + rr.x*0.4, y, z + ff.z*1.1 + rr.z*0.4, h, segHash(i,407)*6.3, false, '#dfe7ef');
+}
+
+/* --------------------------------------------------- kombi rank / stop */
+function drawRank3D(x,y,z,h, sp, night, cam){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const side = Math.sign(sp.off || -1);
+  // a simple shelter: four posts, a sheet roof, a bench
+  const w = 4.2;
+  [-1,1].forEach(k=>[-1,1].forEach(m=>{
+    boxAt(x + rr.x*(side*1.6 + m*0.9) + ff.x*k*w*0.42,
+          y,
+          z + rr.z*(side*1.6 + m*0.9) + ff.z*k*w*0.42,
+          0.12, 2.4, 0.12, h, C3('#6b6f7c'), {spec:0.2});
+  }));
+  const cx0 = x + rr.x*side*1.6, cz0 = z + rr.z*side*1.6;
+  GLR.draw('box', M4.trs(cx0, y+2.4, cz0, h, 2.3, 0.14, w, 0.08), C3('#8d8d92'), {spec:0.4});
+  boxAt(cx0 + rr.x*side*0.6, y+0.45, cz0 + rr.z*side*0.6, 0.4, 0.1, w*0.8, h, C3('#8a6a3a'), {spec:0.08});
+  // commuters waiting, and one hailing
+  const n = 2 + Math.floor(segHash(i,410)*4);
+  for(let k=0;k<n;k++){
+    const o = (k/(Math.max(1,n-1)) - 0.5) * w * 0.85;
+    const back = 0.9 + segHash(i+k,411)*1.2;
+    drawPed3D(x + ff.x*o + rr.x*side*back, y, z + ff.z*o + rr.z*side*back,
+      h + Math.PI*0.5*side, 0, false,
+      ['#38BDF8','#F5B324','#E3342F','#f3f6ff','#7a2f6f'][Math.floor(segHash(i+k,412)*5)%5]);
+  }
+  // a kombi pulled onto the shoulder, indicating
+  if(sp.kombi !== false && Q().build >= 1){
+    const kz = z + ff.z*2.4, kx = x + ff.x*2.4;
+    drawCar3D(kx + rr.x*side*0.9, y, kz + rr.z*side*0.9, h, 'kombi', '#eff3fa',
+      {indL:side<0, indR:side>0, brake:true, tail:night, psv:true}, cam);
+  }
+}
+
+/* ------------------------------------------------------- school group */
+function drawSchoolGroup3D(x,y,z,h, sp, night){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const n = 3 + Math.floor(segHash(i,420)*4);
+  for(let k=0;k<n;k++){
+    const along = (k - (n-1)/2) * 1.15;
+    const across = (segHash(i+k,421) - 0.5) * 0.8;
+    drawPed3D(x + ff.x*along + rr.x*across, y, z + ff.z*along + rr.z*across,
+      h, G.t*4.5 + k*1.3, true,
+      UNIFORM_COLS[Math.floor(segHash(i+k,422)*UNIFORM_COLS.length)%UNIFORM_COLS.length],
+      segHash(i+k,423) < 0.7);
+  }
+}
+
+/* ---------------------------------------------------------- roadworks */
+function drawRoadworks3D(x,y,z,h, sp, night, cam){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const side = Math.sign(sp.off || -1);
+  // a taper of cones leading in
+  for(let k=0;k<7;k++){
+    const along = (k-3)*2.2;
+    const across = side * (0.55 + k*0.1);
+    const cxp = x + ff.x*along + rr.x*across, czp = z + ff.z*along + rr.z*across;
+    GLR.draw('cone', M4.trs(cxp, y, czp, 0, 0.42, 0.75, 0.42), C3('#e0561f'),
+      {spec:0.1, emissive: night ? new Float32Array([0.14,0.05,0.01]) : null});
+    boxAt(cxp, y+0.34, czp, 0.36, 0.13, 0.36, 0, C3('#f4f7ff'),
+      {emissive: night ? new Float32Array([0.2,0.2,0.2]) : null});
+  }
+  // a barrier board across the closed part
+  boxAt(x + rr.x*side*1.1, y+0.55, z + rr.z*side*1.1, 0.14, 0.5, 3.2, h, C3('#E3342F'),
+    {emissive:new Float32Array([0.16,0.03,0.03])});
+  boxAt(x + rr.x*side*1.1, y+0.05, z + rr.z*side*1.1, 0.14, 0.5, 3.2, h, C3('#F5B324'),
+    {emissive:new Float32Array([0.16,0.11,0.0])});
+  // the gang, in hi-vis
+  if(Q().build >= 1){
+    for(let k=0;k<2;k++)
+      drawPed3D(x + ff.x*(k*1.6-0.8) + rr.x*side*2.0, y, z + ff.z*(k*1.6-0.8) + rr.z*side*2.0,
+        h + k, G.t*2 + k, false, '#e8ff3a');
+  }
+}
+
+/* ------------------------------------------------------- parked cars  */
+function drawParkedCars3D(x,y,z,h, sp, night, cam){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const side = Math.sign(sp.off || -1);
+  const n = 2 + Math.floor(segHash(i,430)*2);
+  const pool = ['hatch','sedan','suv','kombi'];
+  for(let k=0;k<n;k++){
+    const along = (k - (n-1)/2) * 5.4;
+    const t = pool[Math.floor(segHash(i+k,431)*pool.length)%pool.length];
+    const col = ['#f2f5ff','#c9d3e6','#2f6fd0','#7d1f1f','#5b6b86','#e8b93c'][Math.floor(segHash(i+k,432)*6)%6];
+    drawCar3D(x + ff.x*along + rr.x*side*0.9, y, z + ff.z*along + rr.z*side*0.9,
+      h, t, col, {tail:night, psv:t==='kombi'}, cam);
+  }
+}
+
+/* -------------------------------------------------------- herd boy    */
+function drawHerder3D(x,y,z,h, sp, night){
+  const i = sp.i||0;
+  const rr = roadRight(h), ff = roadFwd(h);
+  drawPed3D(x, y, z, h + Math.PI*0.5, G.t*3, true, '#c9622e', true);
+  // a stick over the shoulder
+  GLR.draw('box', M4.trs(x + rr.x*0.25, y+1.1, z + rr.z*0.25, h, 0.05, 1.5, 0.05, 0, 0.6),
+    C3('#6b4b2a'), {spec:0.06});
+  for(let k=0;k<2;k++)
+    drawAnimal3D(x + ff.x*(1.8+k*2.0) + rr.x*(k?0.7:-0.4),
+                 y, z + ff.z*(1.8+k*2.0) + rr.z*(k?0.7:-0.4),
+                 h + Math.PI*0.5 + segHash(i+k,440), 'cattle');
 }
 function drawTollgate3D(x,y,z,h, st, night, cam){
   const rr = roadRight(h), nx = rr.x, nz = rr.z;
@@ -4544,18 +5876,13 @@ function drawCar3D(x,y,z, h, type, colour, o, cam){
   const body = C3(colour || '#f2f5ff');
   const wheelR = type==='truck'||type==='bus' ? 0.52 : type==='suv'||type==='kombi' ? 0.38 : 0.32;
   blobShadow(x, y, z, d.l*0.55);
-  // lower body, leaning under acceleration, braking and cornering
+  // the body shell: bonnet, cabin, boot, glass, arches, bumpers, mirrors
   const pit = o.pitch||0, rol = o.roll||0;
-  GLR.draw('box', M4.trs(x, y+wheelR*0.55, z, h, d.w, d.h*0.62, d.l, pit, rol), body,
-    {spec:0.55 - (o.damage||0)*0.003});
-  // cabin / glasshouse, set back a little
-  const cabZ = (type==='bus'||type==='kombi'||type==='truck') ? 0 : -d.l*0.06;
-  GLR.draw('box', M4.trs(x - Math.sin(h)*cabZ, y+wheelR*0.55+d.h*0.62, z - Math.cos(h)*cabZ, h,
-    d.w*0.9, d.cab, d.l*(type==='truck'?0.34:0.58)), C3s(colour||'#f2f5ff', 0.92), {spec:0.5});
-  // glass band
-  GLR.draw('box', M4.trs(x - Math.sin(h)*cabZ, y+wheelR*0.55+d.h*0.62+d.cab*0.18,
-    z - Math.cos(h)*cabZ, h, d.w*0.93, d.cab*0.55, d.l*(type==='truck'?0.3:0.5)),
-    C3(night?'#111a2c':'#22304f'), {spec:0.85});
+  // suspension: the body sits on the springs, which compress under load
+  const squat = Math.max(-0.06, Math.min(0.06, -(o.pitch||0)*0.9));
+  drawBodyShell(x, y + squat, z, h, d, type,
+    (typeof colour === 'string' ? colour : '#f2f5ff'),
+    Object.assign({wheelR:wheelR, night:!envColours().day}, o), lod);
   // wheels
   const wx = d.w*0.46, wz = d.l*0.33;
   if(lod < 2) [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>{
@@ -4616,6 +5943,200 @@ function drawCar3D(x,y,z, h, type, colour, o, cam){
     boxAt(x+ox, y+wheelR*1.5+0.5, z+oz, d.w*0.8, 0.4, 0.06, h, C3('#E3342F'), {emissive:new Float32Array([0.16,0.02,0.02])});
   }
 }
+/* =====================================================================
+   PHASE 8 — VEHICLE BODIES AND INTERIORS
+   ---------------------------------------------------------------------
+   The interiors board shows twelve Zimbabwean cockpits — Quantum, Hilux,
+   KB, Corolla, Fit, Hardbody, Vezel, Bongo, Golf, E46, X-Trail, Scania.
+   Every one is right-hand drive and every one shares the same layout:
+   binnacle directly ahead of the driver on the right, centre stack with a
+   screen over three round climate dials, vents flanking it and at the far
+   ends, gear lever to the driver's left, mirror at top centre.
+
+   So the cockpit is now real geometry lit by the same sun as the world,
+   not a flat overlay, and the body outside is assembled from bonnet, cabin,
+   boot, glass, arches, bumpers, grille and mirrors instead of two boxes.
+   ===================================================================== */
+
+/* ------------------------------------------------------------ bodies -- */
+function drawBodyShell(x, y, z, h, d, body, col, o, lod){
+  const rr = roadRight(h), ff = roadFwd(h);
+  const pit = o.pitch||0, rol = o.roll||0;
+  const wheelR = o.wheelR;
+  const sill = y + wheelR*0.42;
+  const tall = body==='kombi' || body==='bus' || body==='truck';
+  const box = (ox,oy,oz, w,ht,ln, c, opt)=>
+    GLR.draw('box', M4.trs(x + rr.x*ox + ff.x*oz, sill + oy, z + rr.z*ox + ff.z*oz,
+      h, w, ht, ln, pit, rol), c, opt);
+
+  // ---- lower body: a single slab, but inset at the ends so it is not a brick
+  box(0, 0, 0, d.w, d.h*0.56, d.l, C3(col), {spec:0.55 - (o.damage||0)*0.003});
+  if(lod === 0){
+    // sills and a slight tumblehome, read as a shoulder line
+    box(0, d.h*0.5, 0, d.w*1.008, d.h*0.10, d.l*0.94, C3s(col,0.86), {spec:0.4});
+  }
+
+  if(tall){
+    // one-box vans and buses: the cabin is the body
+    box(0, d.h*0.56, 0, d.w*0.98, d.cab, d.l*0.96, C3(col), {spec:0.5});
+    box(0, d.h*0.56 + d.cab*0.30, d.l*0.02, d.w*1.0, d.cab*0.46, d.l*0.9,
+        C3(o.night?'#0d1524':'#22304f'), {spec:0.85});
+    // roof
+    if(lod === 0) box(0, d.h*0.56 + d.cab, 0, d.w*0.94, 0.09, d.l*0.9, C3s(col,0.94), {spec:0.35});
+  } else {
+    // three-box: bonnet, cabin, boot
+    const bonnetL = d.l*0.26, bootL = d.l*(body==='hatch'?0.14:0.22), cabL = d.l - bonnetL - bootL;
+    const cabZ = (bootL - bonnetL)*0.5;
+    // bonnet
+    box(0, d.h*0.56, d.l*0.5 - bonnetL*0.5, d.w*0.95, d.h*0.16, bonnetL, C3(col), {spec:0.6});
+    // cabin
+    box(0, d.h*0.56, cabZ, d.w*0.9, d.cab, cabL, C3s(col,0.97), {spec:0.5});
+    // glasshouse: a slightly narrower, inset band
+    box(0, d.h*0.56 + d.cab*0.22, cabZ, d.w*0.93, d.cab*0.56, cabL*0.94,
+        C3(o.night?'#0d1524':'#22304f'), {spec:0.88});
+    // raked windscreen and backlight
+    if(lod === 0){
+      GLR.draw('box', M4.trs(x + ff.x*(cabZ + cabL*0.5), sill + d.h*0.56 + d.cab*0.45,
+        z + ff.z*(cabZ + cabL*0.5), h, d.w*0.86, d.cab*0.8, 0.12, pit - 0.62, rol),
+        C3(o.night?'#0d1524':'#2c3f63'), {spec:0.9});
+      GLR.draw('box', M4.trs(x + ff.x*(cabZ - cabL*0.5), sill + d.h*0.56 + d.cab*0.45,
+        z + ff.z*(cabZ - cabL*0.5), h, d.w*0.84, d.cab*0.7, 0.12, pit + 0.5, rol),
+        C3(o.night?'#0d1524':'#2c3f63'), {spec:0.9});
+    }
+    // boot / tailgate
+    box(0, d.h*0.56, -d.l*0.5 + bootL*0.5, d.w*0.94, d.h*(body==='hatch'?0.34:0.2), bootL,
+        C3(col), {spec:0.6});
+  }
+
+  if(lod === 0){
+    // wheel arches
+    [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(p=>{
+      box(p[0]*d.w*0.47, wheelR*0.35, p[1]*d.l*0.33, 0.1, wheelR*1.1, wheelR*2.3,
+          C3s(col,0.82), {spec:0.35});
+    });
+    // bumpers
+    box(0, -wheelR*0.22, d.l*0.5, d.w*0.99, wheelR*0.5, 0.22, C3s(col,0.72), {spec:0.3});
+    box(0, -wheelR*0.22, -d.l*0.5, d.w*0.99, wheelR*0.5, 0.22, C3s(col,0.72), {spec:0.3});
+    // grille
+    box(0, wheelR*0.28, d.l*0.5 + 0.02, d.w*0.52, wheelR*0.42, 0.1,
+        C3('#15181f'), {spec:0.25});
+    // door mirrors
+    [-1,1].forEach(k=>{
+      box(k*(d.w*0.55), d.h*0.56 + d.cab*0.28, d.l*0.16, 0.24, 0.13, 0.1,
+          C3s(col,0.8), {spec:0.5});
+    });
+  }
+}
+
+/* ------------------------------------- the right-hand-drive cockpit --- */
+function drawCockpit3D(cam){
+  const c = cam.cam;
+  if(!c.cockpit) return;
+  const night = !envColours().day;
+  const eye = cam.eye;
+  const p = cam.p;
+  const h = (G.heading !== undefined) ? G.heading : p.h;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const v = Save.car();
+  const amb = Save.d.ambient || '#38BDF8';
+  const dark = night ? 0.55 : 1;
+  const D = (ox, oy, oz)=> [
+    p.x + rr.x*ox + ff.x*oz,
+    p.y + oy,
+    p.z + rr.z*ox + ff.z*oz
+  ];
+  const panel = (ox,oy,oz, w,ht,ln, col, opt)=>{
+    const q = D(ox,oy,oz);
+    GLR.draw('box', M4.trs(q[0],q[1],q[2], h, w,ht,ln, G.pitch||0, G.roll||0), col, opt);
+  };
+  const trim = C3s('#20262f', dark);
+
+  /* The dash top sits well below the driver's eyeline — in the Fit reference
+     the glass runs from just above the binnacle to the header rail. Keeping it
+     low is what leaves the road clearly visible. */
+  const DASH_TOP = 0.62;
+  panel(0, DASH_TOP - 0.30, 1.34, 1.78, 0.32, 0.66, trim, {spec:0.12});
+  panel(0, DASH_TOP, 1.46, 1.76, 0.075, 0.44, C3s('#171c25', dark), {spec:0.2});
+  // ---- A-pillars: slim, and swept well out of the forward view
+  [-1,1].forEach(k=>
+    GLR.draw('box', M4.trs(...D(k*0.94, 1.18, 1.00), h, 0.10, 1.05, 0.10, -0.50, k*0.10),
+      C3s('#12161f', dark), {spec:0.15}));
+  // ---- header rail, high enough not to cut the horizon
+  panel(0, 1.86, 0.62, 1.86, 0.12, 0.36, C3s('#12161f', dark), {spec:0.1});
+
+  // ---- the binnacle, directly ahead of the driver on the RIGHT
+  const dx = DRIVER_OFFSET;
+  panel(dx, DASH_TOP - 0.10, 1.36, 0.56, 0.24, 0.42, C3s('#12161f', dark), {spec:0.15});
+  // two dials: tacho and speedo
+  [-0.14, 0.14].forEach(o2=>{
+    const q = D(dx+o2, DASH_TOP - 0.08, 1.54);
+    GLR.draw('cyl', M4.trs(q[0],q[1],q[2], h, 0.22,0.03,0.22, Math.PI/2 + (G.pitch||0), 0),
+      C3(night?'#0a0f1a':'#141a24'),
+      {emissive: night ? C3s(amb, 0.22) : C3s(amb, 0.06), spec:0.3});
+  });
+
+  // ---- centre stack: screen over three round climate dials
+  panel(0, DASH_TOP - 0.12, 1.44, 0.46, 0.22, 0.16, C3s('#0c1017', dark),
+    {emissive: C3s('#1b3a6b', night?0.55:0.30)});
+  [-0.13, 0, 0.13].forEach(o2=>{
+    const q = D(o2, DASH_TOP - 0.34, 1.48);
+    GLR.draw('cyl', M4.trs(q[0],q[1],q[2], h, 0.10,0.03,0.10, Math.PI/2 + (G.pitch||0), 0),
+      C3s('#2b3240', dark), {spec:0.35});
+  });
+  // ---- air vents: flanking the stack and at the far ends
+  [-0.72, -0.34, 0.34, 0.72].forEach(o2=>
+    panel(o2, DASH_TOP - 0.11, 1.46, 0.24, 0.09, 0.10, C3s('#0d1119', dark), {spec:0.25}));
+
+  // ---- the wheel, on the right, turning with the input
+  const wq = D(dx, DASH_TOP - 0.30, 1.16);
+  GLR.draw('cyl', M4.trs(wq[0], wq[1], wq[2], h, 0.58, 0.05, 0.58,
+    Math.PI/2 - 0.38 + (G.pitch||0), 0), C3s('#15181f', dark), {spec:0.3});
+  // spokes and centre boss, rotating with the steering
+  const spin = G.steer*1.6;
+  for(let k=0;k<3;k++){
+    const a2 = spin + k*2.094;
+    GLR.draw('box', M4.trs(
+      wq[0] + rr.x*Math.cos(a2)*0.17, wq[1] + Math.sin(a2)*0.15, wq[2] + rr.z*Math.cos(a2)*0.17,
+      h, 0.30, 0.05, 0.05, -0.38 + (G.pitch||0), a2), C3s('#1c212b', dark), {spec:0.3});
+  }
+  GLR.draw('cyl', M4.trs(wq[0], wq[1], wq[2], h, 0.21, 0.06, 0.21,
+    Math.PI/2 - 0.38 + (G.pitch||0), 0), C3s('#191e27', dark), {spec:0.35});
+
+  // ---- gear lever, to the driver's left on the centre console
+  panel(dx - 0.36, 0.28, 1.05, 0.30, 0.22, 0.55, C3s('#161b24', dark), {spec:0.15});
+  const lever = isManual()
+    ? 0.30 + (G.mGear||0)*0.02
+    : 0.30 + ({P:0.06,R:0.02,N:-0.02,D:-0.06}[G.gearSel] || 0);
+  const lq = D(dx - 0.36, 0.42, 1.06);
+  GLR.draw('box', M4.trs(lq[0], lq[1], lq[2], h, 0.05, lever, 0.05,
+    (G.pitch||0) + (isManual() ? (G.mGear%2 ? -0.16 : 0.16) : 0.05), 0),
+    C3s('#22272f', dark), {spec:0.3});
+  GLR.draw('sphere', M4.trs(lq[0], lq[1]+lever, lq[2], h, 0.11,0.11,0.11),
+    C3s('#0f1219', dark), {spec:0.45});
+  // handbrake lever beside it, up when it is on
+  const hq = D(dx - 0.54, 0.34, 0.82);
+  GLR.draw('box', M4.trs(hq[0], hq[1], hq[2], h, 0.05, 0.34, 0.05,
+    (G.handbrake ? -0.55 : -1.15) + (G.pitch||0), 0), C3s('#1b202a', dark),
+    {spec:0.3, emissive: G.handbrake ? new Float32Array([0.10,0.02,0.02]) : null});
+
+  // ---- mirror housings, framing the live views drawn behind them
+  if(Save.d.mirrors !== false && Q().detail >= 1){
+    // interior mirror on its stalk, left of centre on a right-hand-drive screen
+    panel(-0.26, 1.74, 1.02, 0.07, 0.10, 0.07, C3s('#0e1119', dark), {spec:0.3});
+    panel(-0.26, 1.60, 1.02, 0.50, 0.19, 0.05, C3s('#0e1119', dark), {spec:0.35});
+  }
+  // ---- door cards either side, so the cabin encloses you
+  [-1,1].forEach(k=>
+    panel(k*0.96, 0.34, 0.66, 0.09, 0.72, 1.5, C3s('#1a1f28', dark), {spec:0.12}));
+
+  // ---- ambient light strip along the fascia, at night
+  if(night){
+    panel(0, DASH_TOP - 0.02, 1.52, 1.62, 0.028, 0.028, C3(amb), {emissive:C3s(amb, 0.85)});
+    [-1,1].forEach(k=> panel(k*0.94, 0.40, 0.66, 0.032, 0.028, 1.3, C3(amb),
+      {emissive:C3s(amb, 0.6)}));
+  }
+}
+
 /* ------------------------------------------------------ people, stock -- */
 function drawPed3D(x,y,z,h, ph, walking, shirt, small){
   const s = small ? 0.72 : 1;
@@ -4687,6 +6208,60 @@ function init3D(){
   return ok;
 }
 
+/* ---------------------------------------------------------------------
+   FRUSTUM CULLING
+   Everything drawn is placed in road space, so the cheapest useful test is
+   the angle between the camera's forward vector and the direction to the
+   object. Anything well outside the field of view is skipped before any
+   matrix is built for it. Combined with the distance culling already in
+   place this is what keeps the draw count bounded as the world gets richer.
+   --------------------------------------------------------------------- */
+const FRUSTUM = {fx:0, fz:0, ex:0, ez:0, half:Math.PI, on:true, tested:0, culled:0};
+/* A per-frame draw budget. The furniture pass stops adding once it is spent,
+   traffic and hazards each get a little more, and the player's car, the cabin
+   and the mirrors are always drawn. An overhead camera sees the whole scene at
+   once, so it gets a tighter budget than a forward one. */
+const DRAW_BUDGET = {furniture:260, cars:320, hazards:340, total:420};
+function setBudget(cam){
+  const q = Q();
+  const base = q.detail === 0 ? 85 : q.detail === 1 ? 160 : q.detail === 2 ? 250 : 360;
+  const wide = (cam.cam.top || cam.cam.drone) ? 0.65 : 1;      // overhead sees everything
+  const b = Math.round(base*wide);
+  DRAW_BUDGET.furniture = b;
+  DRAW_BUDGET.cars      = Math.round(b*1.22);
+  DRAW_BUDGET.hazards   = Math.round(b*1.32);
+  DRAW_BUDGET.total     = Math.round(b*1.5);
+}
+function setFrustum(cam){
+  const e = cam.eye, a = cam.at;
+  let dx = a[0]-e[0], dz = a[2]-e[2];
+  const L = Math.hypot(dx,dz) || 1;
+  FRUSTUM.fx = dx/L; FRUSTUM.fz = dz/L;
+  FRUSTUM.ex = e[0];  FRUSTUM.ez = e[2];
+  /* Half the HORIZONTAL field of view. The fov given is vertical, so the
+     horizontal half-angle is atan(tan(v/2) * aspect). A small margin keeps
+     things from popping at the very edge of the screen. */
+  const vHalf = (cam.cam.fov*Math.PI/180) * 0.5;
+  const aspect = Math.max(0.5, glW/Math.max(1, glH));
+  FRUSTUM.half = Math.atan(Math.tan(vHalf) * aspect) + 0.10;
+  FRUSTUM.on = !cam.cam.top;                 // straight down sees all around
+  FRUSTUM.tested = 0; FRUSTUM.culled = 0;
+}
+function inView(x, z, radius){
+  if(!FRUSTUM.on) return true;
+  FRUSTUM.tested++;
+  const r = radius || 6;
+  const dx = x - FRUSTUM.ex, dz = z - FRUSTUM.ez;
+  const d = Math.hypot(dx, dz);
+  if(d < r + 6){ return true; }                 // never cull what is on top of us
+  // the angle from the view axis to the object, less the angle the object subtends
+  const dot = Math.max(-1, Math.min(1, (dx*FRUSTUM.fx + dz*FRUSTUM.fz) / d));
+  const ang = Math.acos(dot) - Math.asin(Math.min(1, r/d));
+  if(ang <= FRUSTUM.half) return true;
+  FRUSTUM.culled++;
+  return false;
+}
+
 function renderWorld3D(dt){
   if(!GLR.ok || !gl3canvas){ renderWorld(); return; }
   if(!G.path3) buildPath3D();
@@ -4705,9 +6280,10 @@ function renderWorld3D(dt){
                          Math.sin(roll), Math.cos(roll), 0);
   GLR.begin(glW, glH, env.sky);
   GLR.setCamera(proj, view, new Float32Array(cam.eye));
-  const wet = G.wx==='rain' ? 1 : G.wx==='mist' ? 0.35 : 0;
-  const fogNear = G.wx==='mist' ? 12 : night ? 45 : q.dist*0.42;
-  const fogFar  = G.wx==='mist' ? 70 : night ? 130 : q.dist;
+  setFrustum(cam); setBudget(cam);
+  const wet = (G.wx==='rain'||G.wx==='storm') ? 1 : G.wx==='mist' ? 0.35 : 0;
+  const fogNear = G.wx==='mist' ? 12 : G.wx==='storm' ? 30 : night ? 45 : q.dist*0.42;
+  const fogFar  = G.wx==='mist' ? 70 : G.wx==='storm' ? 110 : night ? 130 : q.dist;
   GLR.setEnv(env.dir, env.sun, env.amb, env.fog, fogNear, fogFar, wet);
   // headlights actually light the road
   const hp = roadPoint(G.pos + 2*WPM, G.x, 0.75);
@@ -4717,13 +6293,17 @@ function renderWorld3D(dt){
     new Float32Array([Math.sin(ph), -0.06, Math.cos(ph)]),
     G.fog ? 34 : (G.hiBeam ? 110 : 62));
 
+  // ---- the sky: graded from the zenith down to a hot band at the horizon,
+  //      with the sun itself sitting on it. Drawn first, behind everything.
+  drawSky(cam, env, proj, view);
+
   // ---- the ground: a base plane far below, then real terrain over it
   const me = roadPoint(G.pos, 0, 0);
   const gz = ZONE[(segAt(G.pos)||{zone:'suburb'}).zone];
   const prof0 = profileFor(segAt(G.pos) || G.segs[0]);
-  const dry0 = (G.wx === 'sunny' && (G.clock/3600) > 8);
+  const dryness0 = seasonOf() === 'dry' ? 1 : 0.15;
   GLR.draw('ground', M4.trs(me.x, me.y-26, me.z, 0, 3000,1,3000),
-    C3(dry0 ? mixHex(gz.grass2, prof0.grassDry, 0.6) : gz.grass2), {spec:0.01});
+    C3(mixHex(gz.grass2, prof0.grassDry, 0.62*dryness0)), {spec:0.01});
   drawDistantRelief(cam);
   drawTerrain();
 
@@ -4746,17 +6326,16 @@ function renderWorld3D(dt){
     if(s.junction && s.junction.kind==='robot'){
       [-1.2, 1.2].forEach(sd=>{
         const p = edgePoints(i, sd);
-        if(p) drawRobot3D(p.x, p.y, p.z, hh, s.junction, cam);
+        if(p && inView(p.x, p.z, 5)) drawRobot3D(p.x, p.y, p.z, hh, s.junction, cam);
       });
     }
     // a hard draw budget for the roadside: once reached, stop adding furniture
     // (but never abandon the frame — traffic and the player's car still draw)
-    const budget = q.detail === 0 ? 132 : q.detail === 1 ? 260 : 900;
-    if(GLR.calls > budget) break;
+    if(GLR.calls > DRAW_BUDGET.furniture) break;
     if(s.junction && s.junction.kind==='robot'){
       [-1.2, 1.2].forEach(sd=>{
         const p = edgePoints(i, sd);
-        if(p) drawRobot3D(p.x, p.y, p.z, hh, s.junction, cam);
+        if(p && inView(p.x, p.z, 5)) drawRobot3D(p.x, p.y, p.z, hh, s.junction, cam);
       });
     }
     s.sprites.forEach(sp=>{
@@ -4767,6 +6346,7 @@ function renderWorld3D(dt){
       const off = sp.off !== undefined && sp.off !== '' ? sp.off : 1.4;
       const p = edgePoints(i, off);
       if(!p) return;
+      if(!inView(p.x, p.z, (FOOTPRINT[sp.kind] ? FOOTPRINT[sp.kind](sp) : 4) + 6)) return;
       // sit the object on the terrain rather than on the road plane
       p.y += terrainRelief(i, off*(p.hw||halfWidthSeg(i)), s);
       switch(sp.kind){
@@ -4787,14 +6367,25 @@ function renderWorld3D(dt){
           if(!(dist < q.dist*Math.min(1,q.veg))) break;
           if(!(q.veg >= 1 || (i % (q.veg<0.5?3:2)) === 0)) break;
           // dry season browns the foliage off, exactly as the board shows
-          const dry = G.wx === 'sunny' && !isNight() && prof && prof.grassDry &&
-                      (s.zone==='rural' || s.zone==='gravel' || s.zone==='highway');
+          // dry season browns the foliage off across the whole country, not
+          // only on the open road — exactly as the reference boards show
+          const dry = seasonOf() === 'dry' &&
+                      !(sp.kind === 'pine' || sp.kind === 'eucalyptus' || sp.kind === 'palm');
           drawTree3D(p.x, p.y, p.z, (sp.h||1.5)*2.6, sp.kind,
             {lean:sp.lean||0, rot:hh, side:sp.side||0, dry:dry});
           break; }
         case 'tower': case 'house': case 'shop': case 'shack': case 'hut': case 'kopje': case 'chevronPost':
           drawBuilding3D(sp.kind, p.x,p.y,p.z, hh, sp, night); break;
         case 'vendor': drawPed3D(p.x,p.y,p.z, hh+Math.PI/2, 0, false, '#F5B324'); break;
+        case 'stall':     drawStall3D(p.x,p.y,p.z, hh, sp, night, cam); break;
+        case 'rank':      drawRank3D(p.x,p.y,p.z, hh, sp, night, cam); break;
+        case 'schoolkids':drawSchoolGroup3D(p.x,p.y,p.z, hh, sp, night); break;
+        case 'roadworks': drawRoadworks3D(p.x,p.y,p.z, hh, sp, night, cam); break;
+        case 'parked':    drawParkedCars3D(p.x,p.y,p.z, hh, sp, night, cam); break;
+        case 'herder':    drawHerder3D(p.x,p.y,p.z, hh, sp, night); break;
+        case 'welcome': case 'bridge': case 'conical': case 'falls':
+        case 'elephants': case 'statue':
+          drawLandmark(sp.kind, p.x,p.y,p.z, hh, sp, night, cam); break;
         case 'kid': drawPed3D(p.x,p.y,p.z, hh+Math.PI/2, G.t*4, true, '#ffd259', true); break;
         case 'toll': {
           const st = stations.find(t=>t.kind==='toll' && Math.abs(t.i - i) < 3);
@@ -4810,11 +6401,12 @@ function renderWorld3D(dt){
   }
 
   // ---- traffic
-  const carBudget = q.detail === 0 ? 200 : q.detail === 1 ? 340 : 1000;
+  const carBudget = DRAW_BUDGET.cars;
   (G.cars||[]).forEach(c=>{
     const d = dz(G.pos, c.z)/WPM;
     if(d < -30 || d > q.dist) return;
     if(GLR.calls > carBudget && d > 45) return;
+    { const pp = roadPoint(c.z, c.x, 0); if(!inView(pp.x, pp.z, 6)) return; }
     const p = roadPoint(c.z, c.x, 0), ph2 = pathAt(c.z).h;
     const heading = c.dir > 0 ? ph2 : ph2 + Math.PI;
     drawCar3D(p.x, p.y, p.z, heading, c.t || 'sedan', c.c || '#f2f5ff', {
@@ -4848,11 +6440,12 @@ function renderWorld3D(dt){
     }
   }
   // ---- hazards: people, livestock, carts, breakdowns, potholes
-  const hazBudget = q.detail === 0 ? 215 : q.detail === 1 ? 360 : 1100;
+  const hazBudget = DRAW_BUDGET.hazards;
   (G.hazards||[]).forEach(h=>{
     const d = dz(G.pos, h.z)/WPM;
     if(d < -25 || d > q.dist) return;
     if(GLR.calls > hazBudget && d > 35) return;
+    { const pp = roadPoint(h.z, h.x, 0); if(!inView(pp.x, pp.z, 8)) return; }
     const p = roadPoint(h.z, h.x, 0), hd = pathAt(h.z).h;
     switch(h.kind){
       case 'ped': case 'kid':
@@ -4908,7 +6501,144 @@ function renderWorld3D(dt){
       pitch: G.pitch, roll: G.roll, damage: G.damage
     }, cam);
   }
+  // the mirrors: their own render pass, then the cabin over the top
+  drawMirrors(cam, env, night);
+  drawCockpit3D(cam);
   GLR.gl.flush();
+}
+
+/* ---------------------------------------------------------------------
+   THE SKY
+   A banded dome: zenith colour above, the phase's horizon colour at the
+   bottom, and the sun as a disc with a halo. This is what turns "orange
+   clear colour" into the sunsets the reference boards photograph.
+   --------------------------------------------------------------------- */
+function drawSky(cam, env, proj, view){
+  const q = Q();
+  const me = pathAt(G.pos);
+  const R = 1600;
+  const bands = q.detail === 0 ? 3 : q.detail === 1 ? 5 : 8;
+  const gl = GLR.gl;
+  gl.depthMask(false);
+  for(let k=0;k<bands;k++){
+    const t0 = k/bands, t1 = (k+1)/bands;
+    // low bands take the horizon colour, high bands the zenith
+    const col = mixHex(env.horizon, '#'+[env.sky[0],env.sky[1],env.sky[2]].map(v=>
+      ('0'+Math.round(Math.max(0,Math.min(255,v*255))).toString(16)).slice(-2)).join(''),
+      Math.pow(t0, 0.55));
+    const y0 = me.y - 40 + t0*R*0.55, hgt = (t1-t0)*R*0.55 + 2;
+    GLR.draw('cyl', M4.trs(me.x, y0, me.z, 0, R*2, hgt, R*2), C3(col),
+      {emissive:C3s(col, 0.92), spec:0, noCull:true});
+  }
+  // the sun (or moon), low and hot at the ends of the day
+  const d = env.dir;
+  const sx = me.x + d[0]*R*0.8, sy = me.y - 40 + d[1]*R*0.55, sz = me.z + d[2]*R*0.8;
+  const low = 1 - Math.min(1, (env.el||0.5)/0.5);
+  const size = R*(0.030 + low*0.030);
+  const disc = env.day ? mixHex(env.sun, env.horizon, low*0.65) : '#c9d2e8';
+  GLR.draw('sphere', M4.trs(sx, sy, sz, 0, size, size, size), C3(disc),
+    {emissive:C3s(disc, 1.0), spec:0, noCull:true});
+  if(env.day && q.detail >= 1){
+    GLR.draw('sphere', M4.trs(sx, sy, sz, 0, size*2.6, size*2.6, size*2.6), C3(disc),
+      {emissive:C3s(disc, 0.30), spec:0, alpha:0.30, noCull:true});
+  }
+  gl.depthMask(true);
+}
+
+/* =====================================================================
+   MIRRORS
+   ---------------------------------------------------------------------
+   The interiors board shows what a Zimbabwean driver actually sees: a large
+   glass area with the dash well below the eyeline, an interior mirror to the
+   left of centre, and a cased door mirror on each side. All three now show
+   the real world behind you, rendered from their own camera into a scissored
+   rectangle of the canvas. They are a proper second view, not a decal.
+   ===================================================================== */
+function drawMirrorWorld(cam, q, env, night){
+  const startCalls = GLR.calls;
+  const mirrorBudget = q.detail >= 3 ? 44 : q.detail >= 2 ? 32 : 22;
+  // a deliberately reduced scene: the road, the ground, traffic and the
+  // vehicle itself. Enough to judge a gap; cheap enough to run three times.
+  const me = roadPoint(G.pos, 0, 0);
+  const gz = ZONE[(segAt(G.pos)||{zone:'suburb'}).zone];
+  const prof0 = profileFor(segAt(G.pos) || G.segs[0]);
+  const dryness0 = seasonOf() === 'dry' ? 1 : 0.15;
+  GLR.draw('ground', M4.trs(me.x, me.y-26, me.z, 0, 3000,1,3000),
+    C3(mixHex(gz.grass2, prof0.grassDry, 0.62*dryness0)), {spec:0.01});
+  drawTerrain();
+  const n = G.segs.length;
+  const base = Math.floor(G.pos/SEG) % n;
+  const back = Math.min(n-2, Math.ceil(Math.min(110, q.dist) / SEGM));
+  drawRoad((base - back + n) % n, back + 6);
+  (G.cars||[]).forEach(c=>{
+    if(GLR.calls - startCalls > mirrorBudget) return;
+    const d = dz(G.pos, c.z)/WPM;
+    if(d > 12 || d < -Math.min(180, q.dist)) return;
+    const p = roadPoint(c.z, c.x, 0), ph2 = pathAt(c.z).h;
+    drawCar3D(p.x, p.y, p.z, c.dir > 0 ? ph2 : ph2 + Math.PI, c.t || 'sedan', c.c || '#f2f5ff',
+      {head: night, tail: night, brake: !!c.brake, indL:!!c.indL, indR:!!c.indR, psv:!!c.psv}, cam);
+  });
+  if(G.emerg){
+    const e = G.emerg, d = dz(G.pos, e.z)/WPM;
+    if(d < 12 && d > -260){
+      const p = roadPoint(e.z, e.x || PLAYER_LANE, 0), ph3 = pathAt(e.z).h;
+      const fl = Math.floor(G.t*6)%2===0;
+      const col = C3(fl ? '#3b82f6' : '#E3342F');
+      drawCar3D(p.x,p.y,p.z, ph3, 'kombi', '#f2f5ff', {head:true, tail:true, psv:true}, cam);
+      GLR.draw('sphere', M4.trs(p.x, p.y+2.1, p.z, ph3, 0.5,0.3,0.5), col, {emissive:col});
+    }
+  }
+  // and our own tail, so the mirror is framed the way a real one is
+  const v = Save.car(), p = cam.p;
+  drawCar3D(p.x, p.y, p.z, G.heading !== undefined ? G.heading : p.h, v.body,
+    Save.d.colour || v.colour,
+    {tail:G.lights, brake:G.brake>0.05, reverse:G.gearSel==='R',
+     indL:G.indL, indR:G.indR, pitch:G.pitch, roll:G.roll}, cam);
+}
+
+/* the three mirrors, as fractions of the viewport: x, y from the BOTTOM,
+   width, height, and how far the view is turned outward */
+function mirrorRects(camDef){
+  if(!camDef.cockpit) return [];
+  const list = [
+    {id:'interior', x:0.29, y:0.845, w:0.20, h:0.105, yaw:Math.PI,          lat: -0.30, up:1.55, fov:44},
+    {id:'right',    x:0.815, y:0.545, w:0.135, h:0.095, yaw:Math.PI + 0.42, lat:  0.95, up:1.02, fov:52},
+    {id:'left',     x:0.052, y:0.545, w:0.135, h:0.095, yaw:Math.PI - 0.42, lat: -0.95, up:1.02, fov:52}
+  ];
+  return list;
+}
+function drawMirrors(cam, env, night){
+  const q = Q();
+  if(Save.d.mirrors === false) return;
+  if(!cam.cam.cockpit) return;
+  if(q.detail === 0) return;                     // LOW keeps the frame rate instead
+  const rects = mirrorRects(cam.cam);
+  const p = cam.p;
+  const h = (G.heading !== undefined) ? G.heading : p.h;
+  const rr = roadRight(h), ff = roadFwd(h);
+  const wet = G.wx==='rain' ? 1 : G.wx==='mist' ? 0.35 : 0;
+  rects.forEach(m=>{
+    if(m.id !== 'interior' && q.detail < 2) return;   // MEDIUM shows the interior mirror only
+    const vx = Math.round(m.x*glW), vy = Math.round(m.y*glH);
+    const vw = Math.max(8, Math.round(m.w*glW)), vh = Math.max(8, Math.round(m.h*glH));
+    // the mirror's own eye, out at the glass
+    const ex = p.x + rr.x*m.lat + ff.x*0.2;
+    const ez = p.z + rr.z*m.lat + ff.z*0.2;
+    const ey = p.y + m.up;
+    // looking back down the road, turned outward for a door mirror
+    const look = roadFwd(h + m.yaw);
+    const at = [ex + look.x*30, ey - 1.2, ez + look.z*30];
+    const proj = M4.persp(m.fov*Math.PI/180, vw/vh, 0.3, Math.min(220, q.dist));
+    const view = M4.lookAt(ex, ey, ez, at[0], at[1], at[2], 0, 1, 0);
+    GLR.beginViewport(vx, vy, vw, vh, env.sky);
+    GLR.setCamera(proj, view, new Float32Array([ex, ey, ez]));
+    GLR.setEnv(env.dir, env.sun, env.amb, env.fog,
+      G.wx==='mist' ? 12 : night ? 45 : q.dist*0.42,
+      G.wx==='mist' ? 70 : night ? 130 : Math.min(200, q.dist), wet);
+    GLR.setHeadlights(false, ZERO3, ZERO3, 1);
+    drawMirrorWorld({eye:[ex,ey,ez], p:p, cam:cam.cam}, q, env, night);
+    GLR.endViewport(glW, glH);
+  });
 }
 
 /* ============================================ 2D overlay over the 3D ==== */
@@ -4919,7 +6649,7 @@ function renderOverlay2D(){
   const spd = Math.abs(kmh());
 
   // ---- rain on the glass, spray and wipers
-  if(q.weather && G.wx==='rain'){
+  if(q.weather && (G.wx==='rain' || G.wx==='storm')){
     cx.strokeStyle='rgba(200,220,255,.5)'; cx.lineWidth=1.2;
     for(let i=0;i<70;i++){
       const x = (Math.sin(i*91.7+G.t*3)*0.5+0.5)*W;
@@ -4939,14 +6669,19 @@ function renderOverlay2D(){
       cx.beginPath(); cx.moveTo(0,0); cx.lineTo(0,-H*0.95); cx.stroke(); cx.restore();
     }
   }
+  // ---- lightning: the whole screen lifts for an instant, then decays
+  if(q.weather && G.wx==='storm' && (G.lightning||0) > 0.02){
+    cx.fillStyle = 'rgba(226,236,255,'+(Math.min(0.55, G.lightning*0.55)).toFixed(3)+')';
+    cx.fillRect(0,0,W,H);
+  }
   if(q.weather && G.wx==='mist'){
     const g = cx.createLinearGradient(0,H*0.2,0,H);
     g.addColorStop(0,'rgba(210,220,232,.55)'); g.addColorStop(1,'rgba(210,220,232,.08)');
     cx.fillStyle=g; cx.fillRect(0,0,W,H);
   }
 
-  // ---- the cockpit: dash, pillars, wheel, ambient light
-  if(cam.cockpit){
+  // ---- the cockpit is real geometry now; the overlay only does the glass
+  if(false && cam.cockpit){
     const dashY = H*(cam.n==='DASHBOARD' ? 0.56 : 0.68);
     cx.fillStyle = night ? '#0a0d16' : '#161b28';
     cx.beginPath(); cx.moveTo(0,H); cx.lineTo(0,dashY+H*0.1);
@@ -5187,6 +6922,14 @@ function glyphDraw(c, key, s){
       c.beginPath(); c.moveTo(0,-s*0.14); c.lineTo(0,s*0.12); c.lineTo(-s*0.1,s*0.3); c.moveTo(0,s*0.12); c.lineTo(s*0.1,s*0.3);
       c.moveTo(-s*0.2,-s*0.02); c.lineTo(s*0.2,-s*0.16); c.stroke();
       c.fillRect(s*0.14,-s*0.24,s*0.12,s*0.08); break;
+    case 'rocks': {
+      // a face on the left, with rock tumbling from it
+      c.beginPath(); c.moveTo(-s*0.34,-s*0.30); c.lineTo(-s*0.10,-s*0.30);
+      c.lineTo(-s*0.20, s*0.05); c.lineTo(-s*0.34, s*0.05); c.closePath(); c.fill();
+      [[0.02,-0.10,0.10],[0.16,0.06,0.13],[-0.02,0.16,0.08],[0.26,0.22,0.09]].forEach(b=>{
+        c.beginPath(); c.arc(s*b[0], s*b[1], s*b[2], 0, 7); c.fill(); });
+      c.fillRect(-s*0.34, s*0.26, s*0.68, s*0.06);
+      break; }
     case 'hill': c.beginPath(); c.moveTo(-s*0.32,-s*0.22); c.lineTo(s*0.3,s*0.28); c.lineTo(-s*0.32,s*0.28); c.closePath(); c.fill();
       c.fillStyle='#fff'; c.font='bold '+(s*0.2)+'px sans-serif'; c.textAlign='center'; c.fillText('%',-s*0.1,s*0.2); break;
     case 'robot': {
@@ -6030,7 +7773,7 @@ function freeScreen(){
   bindTrans(freeScreen);
   $$('[data-f]').forEach(b=>b.addEventListener('click',()=>startDrive(b.dataset.f, null)));
 }
-function wxName(w){ return {sunny:'Sunny',rain:'Heavy rain',mist:'Mist / fog',night:'Night'}[w]||w; }
+function wxName(w){ return {sunny:'Sunny',cloudy:'Cloudy',rain:'Heavy rain',storm:'Thunderstorm',mist:'Mist / fog',night:'Night'}[w]||w; }
 function clockStr(sec){ const h=Math.floor(sec/3600)%24, m=Math.floor(sec/60)%60;
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
 
@@ -6368,6 +8111,14 @@ function settingsScreen(){
     '<p class="note" style="margin-top:8px">Manual gives you clutch, gate, stalling and engine braking on any car; '+
     'automatic gives you P R N D on any car. It applies everywhere in the game, and you can switch mid-drive from the '+
     'pause menu.</p></div>'+
+    '<div class="card" style="border-color:#e07a1f"><h3>SEASON</h3><div class="grid">'+
+      [['auto','FOLLOW THE ROUTE'],['wet','WET SEASON'],['dry','DRY SEASON']].map(o2=>
+        '<button class="btn '+(((Save.d.season||'auto')===o2[0])?'gold':'ghost')+
+        '" data-season="'+o2[0]+'">'+o2[1]+'</button>').join('')+'</div>'+
+    '<p style="margin-top:8px">The wet season greens the country and leaves water lying on the verge. The dry '+
+    'season browns the grass, bares the msasa and mopane, and leaves the jacarandas and palms as the only colour. '+
+    'Both are in the reference photographs and they look like different countries.</p>'+
+    '<div class="kv"><span>Now</span><b>'+(seasonOf()==='wet'?'Wet season':'Dry season')+'</b></div></div>'+
     '<div class="card" style="border-color:#17A96A"><h3>STEERING ASSIST</h3>'+
     '<div class="rowbtns"><button class="btn '+(Save.d.laneAssist===false?'ghost':'')+'" id="sAssist">'+
       (Save.d.laneAssist===false?'ASSIST OFF — FULL MANUAL':'LANE ASSIST ON')+'</button></div>'+
@@ -6385,6 +8136,8 @@ function settingsScreen(){
     '<p style="margin-top:8px">'+(Store.ok?'Progress, credits, lessons and test results are saved on this device and work with no connection.'
       :'This preview keeps progress in memory for the session. Saved to the device when the file is opened directly in a browser.')+'</p>'+
     '<div class="rowbtns"><button class="btn red" id="sReset">RESET ALL PROGRESS</button></div></div>');
+  $$('[data-season]').forEach(b=>b.addEventListener('click',()=>{
+    Save.d.season = b.dataset.season; Save.write(); settingsScreen(); }));
   $('#sAssist').addEventListener('click',()=>{ Save.d.laneAssist = (Save.d.laneAssist===false); Save.write(); settingsScreen(); });
   $$('[data-tr]').forEach(b=>b.addEventListener('click',()=>{ setTrans(b.dataset.tr); settingsScreen(); }));
   $$('[data-instr]').forEach(b=>b.addEventListener('click',()=>{
@@ -6452,6 +8205,122 @@ function aboutScreen(){
     'colour, dry-grass colour, tree species and canopy shape, rock density, building palette and haze. Phase 1 '+
     'declares that data and wires the road to it; the vegetation, rock, terrain and building systems that consume it '+
     'are Phases 3 to 6 and are not built yet.</p></div>'+
+    '<div class="card" style="border-color:#38BDF8"><h3>CAMERAS AND PERFORMANCE</h3>'+
+    '<p>The camera reference sheet names ten angles. All ten are here, plus the passenger seat, the dashboard and '+
+    'a far chase — fourteen in all.</p>'+
+    '<div class="kv"><span>Interior</span><b>Cockpit · passenger · dashboard</b></div>'+
+    '<div class="kv"><span>On the car</span><b>Hood · bumper · wheel</b></div>'+
+    '<div class="kv"><span>Behind</span><b>Wide angle · chase · far chase · cinematic</b></div>'+
+    '<div class="kv"><span>Elsewhere</span><b>Front (looking back at you) · top (26 m straight down) · '+
+      'drone (38 m aerial) · traffic camera (a fixed roadside pole you drive past)</b></div>'+
+    '<div class="kv"><span>Zoom</span><b>55% to 220%, on the + and − keys</b></div>'+
+    '<p>Switching now snaps rather than gliding thirty metres across the sky, and the overhead camera turns the '+
+    'frustum off so nothing pops at the edge of the picture.</p>'+
+    '<p class="note">Performance: the frustum cone is now derived from the actual lens — 65 degrees on the wide '+
+    'angle, 41 on the cinematic — instead of a guess, and it discards 31 per cent of candidates on the mountain '+
+    'road. Each preset enforces a real per-frame draw budget (85, 160, 250, 360 for roadside furniture), the mirrors '+
+    'have their own, and an overhead camera gets a tighter one because it sees the whole scene at once. Measured '+
+    'peaks across every route and every camera: LOW 110, MEDIUM 259, HIGH 510, ULTRA 667.</p></div>'+
+    '<div class="card" style="border-color:#17A96A"><h3>PHASE 10 — LANDMARKS</h3>'+
+    '<p>Every town reference board opens the same way — a dark green WELCOME TO board on twin posts as you enter, '+
+    'with the town name and a row of small service icons. That gateway now stands at the entrance to every route, '+
+    'and it names the town the route is actually in: Harare, Bulawayo, Gweru, Chivhu, Hwange, Mutare.</p>'+
+    '<p>Beyond the gateway, each region carries one thing that identifies it without a caption.</p>'+
+    '<div class="kv"><span>Victoria Falls road</span><b>The falls — gorge, curtain and the spray standing above it</b></div>'+
+    '<div class="kv"><span>Masvingo road</span><b>The conical tower and enclosure wall of Great Zimbabwe</b></div>'+
+    '<div class="kv"><span>Eastern Highlands</span><b>A steel through-arch bridge, ninety metres across a gorge</b></div>'+
+    '<div class="kv"><span>Hwange</span><b>Elephants in the woodland, signed in advance</b></div>'+
+    '<div class="kv"><span>Towns</span><b>A statue on its plinth, as the town parks all show</b></div>'+
+    '<p class="note">One gateway and one landmark per route, never two. Monuments are solid; the falls, the '+
+    'elephants and the bridge deck are not, because you drive over the bridge and the water is across the gorge.</p></div>'+
+    '<div class="card" style="border-color:#F5B324"><h3>PHASE 9 — LIGHTING AND WEATHER</h3>'+
+    '<p>Every reference board carries a sunset panel, and they are all the same sunset: a low orange sun over '+
+    'granite, the sky graded from deep blue overhead down through gold to a hot band at the horizon. The day now '+
+    'runs through fifteen keyed points rather than three cases, each with its own sun, ambient, zenith and horizon '+
+    'colour, eased so nothing jumps.</p>'+
+    '<div class="kv"><span>Phases</span><b>Night · dawn · sunrise · morning · day · afternoon · golden hour · '+
+      'sunset · blue hour</b></div>'+
+    '<div class="kv"><span>Sky</span><b>A graded dome with the sun on it, hot at the horizon, cool overhead</b></div>'+
+    '<div class="kv"><span>Shadows</span><b>Six times longer at sunset than at noon</b></div>'+
+    '<div class="kv"><span>Thunderstorm</span><b>Lightning lights the whole world, thunder follows at its own '+
+      'distance, grip falls to 0,58 and 100 km/h needs 148 m to stop</b></div>'+
+    '<div class="kv"><span>Seasons</span><b>Wet greens the country; dry browns the grass and bares the msasa, '+
+      'leaving the jacarandas and palms as the only colour</b></div>'+
+    '<p class="note">The season follows the route by default — Chivhu is dry, the Gweru storm run is wet — and you '+
+    'can force either in Settings.</p></div>'+
+    '<div class="card" style="border-color:#38BDF8"><h3>THE DRIVER\u2019S VIEW</h3>'+
+    '<p>The Honda Fit reference shows what a Zimbabwean driver actually sees: the dash top sits well below the '+
+    'eyeline, the glass runs from just above the instruments to the header rail, and the A-pillars are slim and swept '+
+    'out of the way. The cabin has been rebuilt to that proportion, so the road stays clearly visible while you '+
+    'drive rather than being hidden behind the dashboard.</p>'+
+    '<div class="kv"><span>Interior mirror</span><b>Live view behind, left of centre</b></div>'+
+    '<div class="kv"><span>Door mirrors</span><b>Live views, both sides, turned outward</b></div>'+
+    '<p>All three mirrors are real render passes from their own cameras, not painted-on images — traffic coming up '+
+    'behind you appears in them, with its indicators and brake lights, and an emergency vehicle shows its flashing '+
+    'light. On MEDIUM the interior mirror alone is drawn; on HIGH and ULTRA all three; on LOW they are off to keep '+
+    'the frame rate, and you can turn them off yourself in Graphics.</p></div>'+
+    '<div class="card" style="border-color:#8d7f6b"><h3>GRANITE — ROCKS AND KOPJES</h3>'+
+    '<p>The rocks reference sheet names six formations, and a kopje made of two spheres was not one of them. Granite '+
+    'is now a system: every boulder is an irregular, individually rotated mass, sunk into the ground so it grows out '+
+    'of the terrain rather than resting on it, with lichen staining on the larger faces.</p>'+
+    '<div class="kv"><span>Kopje</span><b>Boulders stacked in courses, with msasa growing from the cracks</b></div>'+
+    '<div class="kv"><span>Balanced rock</span><b>One mass resting on two or three</b></div>'+
+    '<div class="kv"><span>Outcrop</span><b>Low exposed granite running along the road</b></div>'+
+    '<div class="kv"><span>Boulder field</span><b>Singles scattered wide across the ground</b></div>'+
+    '<div class="kv"><span>Rocky hill</span><b>A wooded mass with granite breaking through its crown</b></div>'+
+    '<div class="kv"><span>Rock cut</span><b>The road blasted through, face standing at the verge</b></div>'+
+    '<p>Which formation appears depends on how far from the road it sits and how rocky the profile is, so the '+
+    'Eastern Highlands carry thirty-four formations across all six types while Harare has none. A rock cut is '+
+    'always signed in advance with a new class A triangle — BEWARE OF FALLING ROCKS.</p>'+
+    '<p class="note">Destination boards now carry real road distances and the right arrow for each: Bulawayo 439 km, '+
+    'Mutare 263, Victoria Falls 876, straight on or turning.</p></div>'+
+    '<div class="card" style="border-color:#8f7bf0"><h3>PHASE 8 — VEHICLES AND INTERIORS</h3>'+
+    '<p>The interiors reference sheet shows twelve Zimbabwean cockpits — Quantum, Hilux, KB, Corolla, Fit, '+
+    'Hardbody, Vezel, Bongo, Golf, E46, X-Trail and a Scania. Every one is right-hand drive and every one shares the '+
+    'same layout, so the cabin is now real geometry lit by the same sun as the world rather than a flat overlay.</p>'+
+    '<div class="kv"><span>Binnacle</span><b>Directly ahead of the driver, on the right, two lit dials</b></div>'+
+    '<div class="kv"><span>Centre stack</span><b>Screen over three round climate dials, vents either side</b></div>'+
+    '<div class="kv"><span>Wheel</span><b>Three spokes, turns with your input</b></div>'+
+    '<div class="kv"><span>Lever</span><b>To the driver\u2019s left — the H-gate in a manual, P R N D in an automatic</b></div>'+
+    '<div class="kv"><span>Handbrake</span><b>Rises when you pull it on</b></div>'+
+    '<div class="kv"><span>Cabin</span><b>A-pillars, header rail, mirror to the left, door cards, ambient strip at night</b></div>'+
+    '<p>Outside, a body is now assembled from bonnet, cabin, boot, raked windscreen and backlight, glasshouse, '+
+    'wheel arches, bumpers, grille and door mirrors — seventeen parts at full detail, five at distance. Vans and '+
+    'buses are built as one box, cars as three. The body sits on its springs and squats, dives and rolls with the '+
+    'load.</p>'+
+    '<p class="note">Bulawayo was corrected against its own reference sheet: its avenues are the widest in the game '+
+    'at 11.3 m each side with a median, its City Hall is a columned portico rather than a dome, and it has a railway '+
+    'station with a clocktower.</p></div>'+
+    '<div class="card" style="border-color:#e07a1f"><h3>PHASE 7 — ROADSIDE LIFE</h3>'+
+    '<p>A road with one figure standing beside it every few hundred metres does not read as a place where people '+
+    'are. So roadside life now clusters, the way it does in the reference photographs: a market is a run of three or '+
+    'four stalls together, commuters gather at a rank, cars park in a line along the kerb.</p>'+
+    '<div class="kv"><span>Market stalls</span><b>Trestle, heaped produce, umbrella, painted board, trader and customer</b></div>'+
+    '<div class="kv"><span>Kombi ranks</span><b>Shelter, bench, waiting commuters, a kombi indicating in</b></div>'+
+    '<div class="kv"><span>Schoolchildren</span><b>Groups of three to six, walking, in green uniform</b></div>'+
+    '<div class="kv"><span>Roadworks</span><b>Cone taper, barrier board, hi-vis gang — signed in advance every time</b></div>'+
+    '<div class="kv"><span>Parked cars</span><b>Nose-in along a CBD kerb</b></div>'+
+    '<div class="kv"><span>Herd boy</span><b>With his cattle, on the rural roads only</b></div>'+
+    '<p class="note">Density comes from the environment profile, so the Harare CBD carries about half as much again '+
+    'as the road to Victoria Falls. Stalls, shelters and parked cars are solid — you can hit them, and they are held '+
+    'clear of the carriageway by the same setback system as the buildings.</p></div>'+
+    '<div class="card" style="border-color:#F5B324"><h3>PHASE 6 — BUILDINGS</h3>'+
+    '<p>The Harare photograph is not a glass skyline. It is two- to fourteen-storey blocks in cream, beige and grey, '+
+    'a couple of green mirror-glass towers with stepped crowns, flat roofs carrying green water tanks, painted '+
+    'advertisements on blank side walls and corrugated iron over the older buildings. So a building is now assembled '+
+    'from parts — plinth, storeys, roof, then details — with every dimension, colour and feature drawn from a hash of '+
+    'its position. On a CBD route all 151 buildings come out different.</p>'+
+    '<div class="kv"><span>Styles</span><b>18, from tuckshop to office tower</b></div>'+
+    '<div class="kv"><span>Roofs</span><b>Parapet · pitch · corrugated iron · thatch · dome · crown</b></div>'+
+    '<div class="kv"><span>Details</span><b>Water tanks, billboards, shop canopies, verandahs, spires, clock faces</b></div>'+
+    '<div class="kv"><span>Harare heights</span><b>69% four storeys or fewer, tallest twenty</b></div>'+
+    '<div class="kv"><span>Landmarks</span><b>One per town — a cylindrical tower in Harare, a domed civic hall in '+
+      'Bulawayo, a clocktower in Gweru and Mutare</b></div>'+
+    '<div class="kv"><span>Suburbs</span><b>Houses behind boundary walls with gates</b></div>'+
+    '<div class="kv"><span>Signing</span><b>Green destination boards and lit roadside hoardings</b></div>'+
+    '<p class="note">Blocks are laid in runs with gaps rather than one every N segments, and setback, rotation and '+
+    'frontage all vary, so a street reads as a street rather than a row of identical boxes. Every style carries its '+
+    'own footprint, so the setback and collision systems can never disagree with what is drawn.</p></div>'+
     '<div class="card" style="border-color:#38BDF8"><h3>PHASE 3 — TERRAIN</h3>'+
     '<p>The road no longer floats on a flat green plane. Ground height is generated in road space, so the terrain '+
     'meets the carriageway exactly at the shoulder and never steps away from it. Its shape comes from the '+
@@ -6715,6 +8584,8 @@ window.addEventListener('keydown', e=>{
   if(k==='q') restartEngine();
   if(k==='x'){ setHandbrake(!G.handbrake); }
   if(k==='f9' || e.key==='F9'){ toggleDebug(); }
+  if(k==='=' || k==='+') camZoom(+0.15);
+  if(k==='-' || k==='_') camZoom(-0.15);
   if(isManual()){
     if(k==='r') setManualGear(-1);
     if(k==='n') setManualGear(0);
@@ -6941,13 +8812,26 @@ function graphicsScreen(){
       row('Anti-aliasing','aa',[['Off',false],['FXAA',true]], v=>v?'FXAA':'Off')+
       row('Bloom','bloom',[['Off',false],['On',true]], v=>v?'On':'Off')+
       row('Motion blur','blur',[['Off',false],['On',true]], v=>v?'On':'Off')+
+      '<div class="kv" style="margin-top:7px"><span>Mirrors</span><b>'+
+        (Save.d.mirrors===false?'Off':(q.detail>=2?'Interior and both doors':q.detail>=1?'Interior only':'Off on this preset'))+
+      '</b></div>'+
+      '<div class="rowbtns"><button class="btn sm '+(Save.d.mirrors===false?'ghost':'blue')+
+        '" id="gMirror">'+(Save.d.mirrors===false?'MIRRORS OFF':'MIRRORS ON')+'</button></div>'+
       '<div class="rowbtns" style="margin-top:10px"><button class="btn ghost sm" id="gReset">RESET TO PRESET</button></div>'+
     '</div>'+
     '<div class="card"><h3>CAMERAS</h3>'+
       CAMS.map((c,i)=>'<div class="kv"><span>'+(i+1)+'. '+c.n+'</span><b>'+
-        (c.cockpit?'Interior · right-hand drive':(c.car?'Chase':'Body-mounted'))+'</b></div>').join('')+
-      '<p class="note" style="margin-top:6px">The cameras respond to acceleration, braking, cornering and impacts. '+
-      'Cycle with CAM or the C key.</p></div>'+
+        (c.cockpit?'Interior · right-hand drive'
+         : c.fixed?'Fixed roadside pole'
+         : c.top?'Straight down'
+         : c.drone?'High aerial'
+         : c.wheel?'Close on the front wheel'
+         : c.faceBack?'Ahead, looking back'
+         : c.car?'Chase':'Body-mounted')+'</b></div>').join('')+
+      '<div class="kv" style="margin-top:8px"><span>Zoom</span><b>'+
+        Math.round((camState.zoom||1)*100)+'% — keys + and −</b></div>'+
+      '<p class="note" style="margin-top:6px">The cameras respond to acceleration, braking, cornering and impacts, '+
+      'and snap rather than glide when you switch. Cycle with CAM or the C key.</p></div>'+
     '<div class="card"><h3>CABIN AMBIENT LIGHT</h3><div class="rowbtns">'+
       ['#38BDF8','#8f7bf0','#17A96A','#F5B324','#E3342F','#f3f6ff'].map(c=>
         '<button class="btn sm" data-amb="'+c+'" style="background:'+c+';color:#0b1020">&nbsp;</button>').join('')+
@@ -6973,6 +8857,7 @@ function graphicsScreen(){
     const v = b.dataset.gv;
     setGfx(b.dataset.gk, v==='true'?true : v==='false'?false : parseFloat(v));
     graphicsScreen(); }));
+  $('#gMirror').addEventListener('click',()=>{ Save.d.mirrors = (Save.d.mirrors===false); Save.write(); graphicsScreen(); });
   $('#gReset').addEventListener('click',()=>{ resetGfx(); graphicsScreen(); });
   $('#gDebug').addEventListener('click',()=>{ toggleDebug(); graphicsScreen(); });
   $$('[data-amb]').forEach(b=>b.addEventListener('click',()=>{
@@ -7159,6 +9044,8 @@ function paintDebug(){
     'speed '+Math.abs(kmh()).toFixed(1)+' km/h · gear '+(isManual()?('M'+G.mGear+' cl '+G.clutch.toFixed(2)):('D'+G.gear))+
       ' · rpm '+Math.round(G.rpm)+'<br>'+
     'segment '+(s.i||0)+'/'+G.segs.length+' · zone '+(s.zone||'—')+' · limit '+(s.limit||0)+' · line '+(s.line||'—')+'<br>'+
+    'frustum '+FRUSTUM.culled+'/'+FRUSTUM.tested+' culled · '+
+      (FRUSTUM.tested? Math.round(FRUSTUM.culled/FRUSTUM.tested*100):0)+'%<br>'+
     'terrain chunks '+TERRAIN.stats.visible+'/'+TERRAIN.stats.total+' · rebuilds '+TERRAIN.stats.built+
       ' · reach '+TERRAIN.reach+' m<br>'+
     'road y '+(G.path3?pathAt(G.pos).y.toFixed(2):'—')+' · terrain y at 20 m left '+
@@ -7263,7 +9150,7 @@ function frameBody(now){
     updateTrans(dt); updatePhysics(dt);
     updateJunctions(dt); spawnCars(); updateCars(dt); updateHazards(dt);
     maybeSpawnEmergency(dt); updateRules(dt);
-    updateStations(dt); updateCollisions(dt); Instructor.update(dt);
+    updateStations(dt); updateCollisions(dt); updateStorm(dt); Instructor.update(dt);
     if(G.failCrash){ G.failCrash = false; endTrip(false, true); return; }
     // indicator tick
     if(G.indL||G.indR){ blinkT += dt; if(blinkT>0.5){ blinkT=0; Audio2.tick(); } }
